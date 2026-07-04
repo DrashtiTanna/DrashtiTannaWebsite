@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Explore in 3D — Beyond the Boundaries</title>
+<meta name="description" content="Interactive 3D model of the Beyond the Boundaries proposal — walk the infraspace corridor between the BreBeMi motorway and the railway at Romano di Lombardia.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M10 55 Q30 35 50 55 T90 55 L90 75 Q70 95 50 75 T10 75 Z' fill='%231d4e6e'/></svg>">
+<style>
+  :root {
+    --paper: #f4f0ed; --blue: #1d4e6e; --blue-dark: #143850;
+    --ink: #171b1e; --grey: #6f6a68;
+    --mono: 'IBM Plex Mono', 'Courier New', monospace;
+    --sans: 'Space Grotesk', 'Segoe UI', Arial, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body { font-family: var(--sans); background: var(--ink); color: var(--paper); }
+  #scene { position: fixed; inset: 0; display: block; touch-action: none; }
+
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: 14px 16px; pointer-events: none; gap: 10px;
+  }
+  .topbar > * { pointer-events: auto; }
+  .back {
+    font-family: var(--mono); font-size: 12px; letter-spacing: .14em;
+    text-transform: uppercase; color: #fff; text-decoration: none;
+    background: rgba(18,22,25,.75); padding: 10px 16px; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,.15);
+  }
+  .back:hover { background: var(--blue); }
+  .title-chip {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .18em;
+    text-transform: uppercase; color: rgba(255,255,255,.85);
+    background: rgba(18,22,25,.75); padding: 10px 16px; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,.15);
+    display: none;
+  }
+  @media (min-width: 700px) { .title-chip { display: block; } }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .ctl {
+    font-family: var(--mono); font-size: 12px; letter-spacing: .1em;
+    text-transform: uppercase; color: #fff; cursor: pointer;
+    background: rgba(18,22,25,.75); padding: 10px 14px; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,.15); transition: background .2s;
+  }
+  .ctl:hover { background: rgba(45,60,70,.85); }
+  .ctl.active { background: var(--blue); border-color: var(--blue); }
+
+  #hint {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    z-index: 20; font-family: var(--mono); font-size: 11.5px; letter-spacing: .1em;
+    color: rgba(255,255,255,.9); background: rgba(18,22,25,.75);
+    padding: 9px 18px; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,.15); text-align: center;
+    max-width: 92vw; pointer-events: none;
+  }
+
+  #infoCard {
+    position: fixed; left: 16px; bottom: 56px; z-index: 25;
+    width: min(330px, calc(100vw - 32px));
+    background: rgba(244,240,237,.97); color: #1d1a19;
+    border-top: 4px solid var(--blue);
+    padding: 18px 20px; display: none;
+    box-shadow: 0 20px 50px rgba(0,0,0,.4);
+  }
+  #infoCard.open { display: block; }
+  #infoCard .num { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; color: var(--blue); text-transform: uppercase; }
+  #infoCard h3 { font-size: 19px; margin: 4px 0 6px; }
+  #infoCard p { font-size: 13.5px; line-height: 1.55; color: #444; }
+  #infoClose {
+    position: absolute; top: 8px; right: 10px; border: 0; background: none;
+    font-size: 20px; cursor: pointer; color: var(--grey); line-height: 1;
+  }
+
+  #crosshair {
+    position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    z-index: 15; width: 14px; height: 14px; display: none; pointer-events: none;
+  }
+  #crosshair::before, #crosshair::after { content: ''; position: absolute; background: rgba(255,255,255,.85); }
+  #crosshair::before { left: 6px; top: 0; width: 2px; height: 14px; }
+  #crosshair::after  { top: 6px; left: 0; width: 14px; height: 2px; }
+
+  #walkStart {
+    position: fixed; inset: 0; z-index: 40; display: none;
+    align-items: center; justify-content: center; flex-direction: column;
+    background: rgba(18,22,25,.84); text-align: center; padding: 24px;
+  }
+  #walkStart.open { display: flex; }
+  #walkStart h2 { text-transform: uppercase; letter-spacing: .04em; font-size: clamp(22px, 4vw, 34px); }
+  #walkStart .river-ico { width: 84px; height: 26px; margin-bottom: 22px; }
+  #walkStart p { font-family: var(--mono); font-size: 12.5px; letter-spacing: .08em; color: #c9d2d8; margin: 14px 0 26px; line-height: 2; }
+  #walkStart button {
+    font-family: var(--mono); font-size: 14px; letter-spacing: .16em; text-transform: uppercase;
+    background: var(--blue); border: 0; color: #fff; padding: 15px 38px; cursor: pointer;
+  }
+  #walkStart button:hover { background: var(--blue-dark); }
+
+  #loading {
+    position: fixed; inset: 0; z-index: 50; background: var(--ink);
+    display: flex; align-items: center; justify-content: center; flex-direction: column;
+    transition: opacity .6s;
+  }
+  #loading.done { opacity: 0; pointer-events: none; }
+  #loading .river-ico { width: 110px; height: 34px; animation: drift 2s ease-in-out infinite; }
+  @keyframes drift { 50% { transform: translateX(10px); opacity: .75; } }
+  #loading p { margin-top: 20px; font-family: var(--mono); font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: #8d979e; }
+
+  #joy {
+    position: fixed; z-index: 30; width: 110px; height: 110px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.35); background: rgba(255,255,255,.06);
+    display: none; pointer-events: none;
+  }
+  #joyKnob {
+    position: absolute; left: 50%; top: 50%; width: 46px; height: 46px;
+    border-radius: 50%; background: rgba(29,78,110,.9);
+    transform: translate(-50%,-50%);
+  }
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+
+<div class="topbar">
+  <a class="back" href="index.html">&#8592; Project</a>
+  <div class="title-chip">Beyond the Boundaries &middot; Romano di Lombardia &middot; 3D corridor</div>
+  <div class="controls">
+    <button class="ctl active" id="btnOrbit">&#10227; Orbit</button>
+    <button class="ctl" id="btnWalk">&#128694; Walk</button>
+    <button class="ctl" id="btnNight">&#9789; Night</button>
+    <button class="ctl active" id="btnLabels">&#9679; Labels</button>
+  </div>
+</div>
+
+<div id="hint">drag to orbit &middot; scroll to zoom &middot; click a blue marker for info</div>
+
+<div id="infoCard">
+  <button id="infoClose">&times;</button>
+  <div class="num" id="infoNum"></div>
+  <h3 id="infoName"></h3>
+  <p id="infoDesc"></p>
+</div>
+
+<div id="crosshair"></div>
+
+<div id="walkStart">
+  <svg class="river-ico" viewBox="0 0 110 34"><path d="M0 17 Q14 4 28 17 T56 17 T84 17 T112 17" fill="none" stroke="#1d4e6e" stroke-width="6"/></svg>
+  <h2>First-person visit</h2>
+  <p id="walkHelp"></p>
+  <button id="walkGo">Start walking</button>
+</div>
+
+<div id="loading">
+  <svg class="river-ico" viewBox="0 0 110 34"><path d="M0 17 Q14 4 28 17 T56 17 T84 17 T112 17" fill="none" stroke="#1d4e6e" stroke-width="6"/></svg>
+  <p>Growing the corridor&hellip;</p>
+</div>
+
+<div id="joy"><div id="joyKnob"></div></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ============================================================
+   BEYOND THE BOUNDARIES — interactive 3D corridor
+   Stylised model of the intervention at Romano di Lombardia:
+   the infraspace between the BreBeMi motorway and the railway,
+   the Serio River, bioswales, detention ponds, fontanili and
+   reforestation. North = -Z.
+   ============================================================ */
+
+const COL = {
+  blue: 0x1d4e6e, water: 0x27506c, waterDark: 0x16324a,
+  sky: 0xdfe7ec, skyNight: 0x10141c,
+  grass: 0x9db07a, meadow: 0xaebd8a,
+  fieldA: 0xc9c19a, fieldB: 0xa8b578, fieldC: 0xb5c490, fieldD: 0xd5cba4,
+  asphalt: 0x3a3d40, ballast: 0x6f6a64, gravel: 0xd8d2c4,
+  concrete: 0xb4aea8, embank: 0x8f9678,
+  leafA: 0x5c7345, leafB: 0x74885a, leafC: 0x46603a, willow: 0x7d9468,
+  trunk: 0x6e5a44, reed: 0x8a9a5b,
+  red: 0xa33327, warm: 0xffd9a0
+};
+
+const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+
+/* ---------- renderer / scene / camera ---------- */
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(COL.sky);
+scene.fog = new THREE.Fog(COL.sky, 130, 380);
+
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.3, 700);
+camera.position.set(85, 62, 105);
+
+/* ---------- lights ---------- */
+const hemi = new THREE.HemisphereLight(0xf4f7f8, 0x7d8570, 1.1);
+scene.add(hemi);
+const sunLight = new THREE.DirectionalLight(0xfff3e0, 2.4);
+sunLight.position.set(70, 90, -50);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.set(2048, 2048);
+sunLight.shadow.camera.left = -130; sunLight.shadow.camera.right = 130;
+sunLight.shadow.camera.top = 130; sunLight.shadow.camera.bottom = -130;
+sunLight.shadow.camera.far = 320;
+sunLight.shadow.bias = -0.0005;
+scene.add(sunLight);
+
+/* ---------- materials ---------- */
+const M = {
+  grass: new THREE.MeshStandardMaterial({ color: COL.grass, roughness: 1 }),
+  meadow: new THREE.MeshStandardMaterial({ color: COL.meadow, roughness: 1 }),
+  water: new THREE.MeshStandardMaterial({ color: COL.water, roughness: .3, metalness: .05 }),
+  canal: new THREE.MeshStandardMaterial({ color: COL.blue, roughness: .35 }),
+  asphalt: new THREE.MeshStandardMaterial({ color: COL.asphalt, roughness: .9 }),
+  ballast: new THREE.MeshStandardMaterial({ color: COL.ballast, roughness: 1 }),
+  gravel: new THREE.MeshStandardMaterial({ color: COL.gravel, roughness: 1 }),
+  concrete: new THREE.MeshStandardMaterial({ color: COL.concrete, roughness: .9 }),
+  embank: new THREE.MeshStandardMaterial({ color: COL.embank, roughness: 1 }),
+  white: new THREE.MeshStandardMaterial({ color: 0xeeeae4, roughness: .7 }),
+  dark: new THREE.MeshStandardMaterial({ color: 0x26292c, roughness: .8 }),
+  rail: new THREE.MeshStandardMaterial({ color: 0x555a5e, roughness: .5, metalness: .5 }),
+  trunk: new THREE.MeshStandardMaterial({ color: COL.trunk, roughness: 1 }),
+  leafA: new THREE.MeshStandardMaterial({ color: COL.leafA, roughness: 1 }),
+  leafB: new THREE.MeshStandardMaterial({ color: COL.leafB, roughness: 1 }),
+  leafC: new THREE.MeshStandardMaterial({ color: COL.leafC, roughness: 1 }),
+  willow: new THREE.MeshStandardMaterial({ color: COL.willow, roughness: 1 }),
+  reed: new THREE.MeshStandardMaterial({ color: COL.reed, roughness: 1 }),
+  red: new THREE.MeshStandardMaterial({ color: COL.red, roughness: .6 }),
+  glass: new THREE.MeshStandardMaterial({ color: 0x51606a, roughness: .3, metalness: .3 })
+};
+
+/* ---------- helpers ---------- */
+function box(w, h, d, mat, x, y, z, ry = 0, shadow = true) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  m.position.set(x, y, z);
+  m.rotation.y = ry;
+  if (shadow) { m.castShadow = true; m.receiveShadow = true; }
+  return m;
+}
+function cyl(rT, rB, h, mat, x, y, z, seg = 10) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(rT, rB, h, seg), mat);
+  m.position.set(x, y, z);
+  m.castShadow = true; m.receiveShadow = true;
+  return m;
+}
+function flat(w, d, mat, x, y, z, ry = 0) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), mat);
+  m.rotation.x = -Math.PI / 2;
+  m.rotation.z = ry;
+  m.position.set(x, y, z);
+  m.receiveShadow = true;
+  return m;
+}
+
+const world = new THREE.Group();
+scene.add(world);
+const colliders = [];   // ground-level AABBs
+
+/* ---------- ground + fields ---------- */
+world.add(flat(520, 400, M.grass, 0, -0.02, 0));
+
+// field patchwork north of the motorway and south of the railway
+const fieldMats = [M.meadow,
+  new THREE.MeshStandardMaterial({ color: COL.fieldA, roughness: 1 }),
+  new THREE.MeshStandardMaterial({ color: COL.fieldB, roughness: 1 }),
+  new THREE.MeshStandardMaterial({ color: COL.fieldC, roughness: 1 }),
+  new THREE.MeshStandardMaterial({ color: COL.fieldD, roughness: 1 })];
+let fi = 0;
+for (let x = -220; x < 240; x += 76) {
+  for (const z of [-58, -110, 58, 104]) {
+    world.add(flat(68, 42, fieldMats[fi++ % 5], x + (z > 0 ? 18 : 0), 0.06, z));
+  }
+}
+
+// irrigation canals crossing the fields (N-S)
+[-130, -76, 64, 128].forEach(x => {
+  world.add(flat(2.2, 130, M.canal, x, 0.16, -95));
+  world.add(flat(2.2, 110, M.canal, x + 8, 0.16, 90));
+});
+// Fosso Bergamasco — historic canal, south fields
+world.add(flat(460, 3.4, M.canal, 0, 0.16, 66));
+
+// distant ridge to the north (the pre-Alps)
+[[-150, -300, 130, 26], [40, -320, 150, 30], [200, -290, 120, 22]].forEach(([x, z, r, h]) => {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(r, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2),
+    new THREE.MeshStandardMaterial({ color: 0x9aa5ab, roughness: 1 }));
+  m.scale.y = h / r;
+  m.position.set(x, -0.5, z);
+  world.add(m);
+});
+
+/* ---------- Serio River (meandering, N-S) ---------- */
+const RIVER_PTS = [[-28, -95], [-14, -52], [-22, -18], [-19, 12], [-15, 46], [-24, 95]];
+for (let i = 0; i < RIVER_PTS.length - 1; i++) {
+  const [x1, z1] = RIVER_PTS[i], [x2, z2] = RIVER_PTS[i + 1];
+  const len = Math.hypot(x2 - x1, z2 - z1) + 6;
+  const ang = Math.atan2(x2 - x1, z2 - z1);
+  const seg = flat(10, len, M.water, (x1 + x2) / 2, 0.15, (z1 + z2) / 2, -ang);
+  world.add(seg);
+  // gravel banks
+  world.add(flat(14, len, M.gravel, (x1 + x2) / 2, 0.10, (z1 + z2) / 2, -ang));
+  // collider strip (approximate)
+  const midX = (x1 + x2) / 2;
+  colliders.push({ minX: midX - 5.5, maxX: midX + 5.5, minZ: Math.min(z1, z2), maxZ: Math.max(z1, z2), tag: 'river' });
+}
+
+/* ---------- BreBeMi motorway (E-W at z=-18, surface y=5) ---------- */
+const ROAD_Y = 5;
+const GAP = { minX: -35, maxX: -5 };   // bridge span over the river + passage
+
+function embankment(minX, maxX, zC, widthTop, height, mat) {
+  const w = maxX - minX;
+  const g = new THREE.Group();
+  g.add(box(w, height, widthTop, mat, (minX + maxX) / 2, height / 2, zC));
+  // sloped sides
+  const slope = new THREE.Mesh(new THREE.PlaneGeometry(w, height * 2.2), mat);
+  slope.position.set((minX + maxX) / 2, height / 2, zC + widthTop / 2 + height * 0.55);
+  slope.rotation.x = -Math.PI / 2 + Math.atan2(height, height * 1.1);
+  slope.receiveShadow = true;
+  g.add(slope);
+  const slope2 = slope.clone();
+  slope2.position.z = zC - widthTop / 2 - height * 0.55;
+  slope2.rotation.x = Math.PI / 2 - Math.atan2(height, height * 1.1);
+  g.add(slope2);
+  world.add(g);
+}
+
+// west + east embankment segments (gap over the river)
+embankment(-240, GAP.minX, -18, 10, 4.7, M.embank);
+embankment(GAP.maxX, 240, -18, 10, 4.7, M.embank);
+// road slab full length (bridge deck across the gap)
+world.add(box(480, 0.5, 9, M.asphalt, 0, ROAD_Y - 0.25, -18));
+// centre line dashes
+for (let x = -236; x < 240; x += 14) world.add(box(4, 0.06, 0.25, M.white, x, ROAD_Y + 0.04, -18, 0, false));
+// guard rails
+world.add(box(480, 0.35, 0.12, M.concrete, 0, ROAD_Y + 0.4, -22.6, 0, false));
+world.add(box(480, 0.35, 0.12, M.concrete, 0, ROAD_Y + 0.4, -13.4, 0, false));
+// bridge piers at the gap
+[[-30, -18], [-10, -18]].forEach(([x, z]) => {
+  world.add(cyl(1.1, 1.3, ROAD_Y - 0.5, M.concrete, x, (ROAD_Y - 0.5) / 2, z, 12));
+  colliders.push({ minX: x - 1.4, maxX: x + 1.4, minZ: z - 1.4, maxZ: z + 1.4 });
+});
+// motorway colliders (ground level), leaving the gap + the viewpoint ramp strip free
+colliders.push({ minX: -240, maxX: GAP.minX, minZ: -25, maxZ: -11 });
+colliders.push({ minX: GAP.maxX, maxX: 240, minZ: -25, maxZ: -13.6 });
+colliders.push({ minX: GAP.maxX, maxX: 40, minZ: -13.6, maxZ: -11 });
+colliders.push({ minX: 70, maxX: 240, minZ: -13.6, maxZ: -11 });
+
+// street light poles
+for (let x = -220; x <= 220; x += 44) {
+  world.add(cyl(0.09, 0.09, 6, M.dark, x, ROAD_Y + 3, -22.2, 6));
+  world.add(box(1.6, 0.09, 0.09, M.dark, x + 0.7, ROAD_Y + 6, -22.2, 0, false));
+}
+
+/* ---------- railway (E-W at z=26, surface y=2.5) ---------- */
+const RAIL_Y = 2.5;
+embankment(-240, GAP.minX, 26, 7, 2.2, M.ballast);
+embankment(GAP.maxX, 240, 26, 7, 2.2, M.ballast);
+world.add(box(480, 0.3, 5.4, M.ballast, 0, RAIL_Y - 0.35, 26));
+// rails
+world.add(box(480, 0.12, 0.14, M.rail, 0, RAIL_Y - 0.1, 25.2, 0, false));
+world.add(box(480, 0.12, 0.14, M.rail, 0, RAIL_Y - 0.1, 26.8, 0, false));
+// sleepers
+for (let x = -238; x < 240; x += 4) world.add(box(0.5, 0.08, 2.4, M.dark, x, RAIL_Y - 0.18, 26, 0, false));
+// rail bridge piers
+[[-28, 26], [-12, 26]].forEach(([x, z]) => {
+  world.add(cyl(0.8, 1.0, RAIL_Y - 0.4, M.concrete, x, (RAIL_Y - 0.4) / 2, z, 12));
+  colliders.push({ minX: x - 1.1, maxX: x + 1.1, minZ: z - 1.1, maxZ: z + 1.1 });
+});
+colliders.push({ minX: -240, maxX: GAP.minX, minZ: 22.5, maxZ: 29.5 });
+colliders.push({ minX: GAP.maxX, maxX: 240, minZ: 22.5, maxZ: 29.5 });
+
+/* ---------- viewpoint ramp onto the BreBeMi shoulder ---------- */
+const RAMPB = { minX: 40, maxX: 70, minZ: -13.6, maxZ: -11.0, hTop: ROAD_Y };
+const VIEW = { minX: 68, maxX: 84, minZ: -14.6, maxZ: -12.8, h: ROAD_Y };
+
+(function buildRamp() {
+  const len = RAMPB.maxX - RAMPB.minX;
+  const ramp = new THREE.Mesh(new THREE.BoxGeometry(len, 0.3, RAMPB.maxZ - RAMPB.minZ), M.gravel);
+  ramp.castShadow = ramp.receiveShadow = true;
+  ramp.position.set((RAMPB.minX + RAMPB.maxX) / 2, RAMPB.hTop / 2, (RAMPB.minZ + RAMPB.maxZ) / 2);
+  ramp.rotation.z = Math.atan2(RAMPB.hTop, len);   // rises toward +x
+  world.add(ramp);
+  // viewpoint deck + red railing (the "perception from BreBeMi")
+  world.add(box(VIEW.maxX - VIEW.minX, 0.35, VIEW.maxZ - VIEW.minZ, M.gravel, (VIEW.minX + VIEW.maxX) / 2, VIEW.h - 0.17, (VIEW.minZ + VIEW.maxZ) / 2));
+  const railMat = M.red;
+  world.add(box(VIEW.maxX - VIEW.minX, 0.08, 0.08, railMat, (VIEW.minX + VIEW.maxX) / 2, VIEW.h + 1.05, VIEW.maxZ, 0, false));
+  world.add(box(VIEW.maxX - VIEW.minX, 0.08, 0.08, railMat, (VIEW.minX + VIEW.maxX) / 2, VIEW.h + 1.05, VIEW.minZ, 0, false));
+  world.add(box(0.08, 0.08, VIEW.maxZ - VIEW.minZ, railMat, VIEW.maxX, VIEW.h + 1.05, (VIEW.minZ + VIEW.maxZ) / 2, 0, false));
+  for (let x = VIEW.minX; x <= VIEW.maxX; x += 4) {
+    world.add(cyl(0.04, 0.04, 1.05, railMat, x, VIEW.h + 0.5, VIEW.maxZ, 6));
+    world.add(cyl(0.04, 0.04, 1.05, railMat, x, VIEW.h + 0.5, VIEW.minZ, 6));
+  }
+})();
+
+/* ---------- the corridor: path, bioswales, ponds ---------- */
+
+// proposed gravel path through the corridor to the river
+world.add(flat(160, 3.6, M.gravel, 40, 0.20, 4));
+// riverside path passing under both bridges (east bank of the Serio)
+world.add(flat(3.2, 130, M.gravel, -10.5, 0.20, -20));
+
+// bioswale canals: from the motorway edge to the detention pond
+[[28, -4, 0.5], [56, -2, -0.45]].forEach(([x, z, ry]) => {
+  world.add(flat(2.4, 16, M.canal, x, 0.22, z, ry));
+  // fringe shrubs
+  for (let i = -3; i <= 3; i++) {
+    const s = new THREE.Mesh(new THREE.IcosahedronGeometry(0.5 + Math.random() * 0.3, 1), M.reed);
+    s.position.set(x + Math.sin(ry) * i * 2.2 + (i % 2 ? 1.6 : -1.6), 0.4, z + Math.cos(ry) * i * 2.2);
+    s.castShadow = true;
+    world.add(s);
+  }
+});
+// outlet canal from pond back toward the river
+world.add(flat(26, 2.2, M.canal, 18, 0.22, 8, 0.12));
+
+// detention pond (D) — collects BreBeMi drainage
+const pond = new THREE.Mesh(new THREE.CircleGeometry(12, 36), M.water);
+pond.rotation.x = -Math.PI / 2;
+pond.scale.set(1.15, 0.7, 1);
+pond.position.set(45, 0.18, 8);
+pond.receiveShadow = true;
+world.add(pond);
+colliders.push({ minX: 32, maxX: 58, minZ: 1, maxZ: 15 });
+
+// fontanili naturalization pond
+const pond2 = new THREE.Mesh(new THREE.CircleGeometry(7.5, 30), M.water);
+pond2.rotation.x = -Math.PI / 2;
+pond2.scale.set(1.1, 0.72, 1);
+pond2.position.set(86, 0.18, 13);
+pond2.receiveShadow = true;
+world.add(pond2);
+colliders.push({ minX: 78, maxX: 94, minZ: 8, maxZ: 18 });
+
+// reeds around the ponds
+function reeds(cx, cz, rx, rz, n) {
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    const x = cx + Math.cos(a) * rx * (0.95 + Math.random() * 0.15);
+    const z = cz + Math.sin(a) * rz * (0.95 + Math.random() * 0.15);
+    const h = 0.8 + Math.random() * 0.7;
+    world.add(cyl(0.02, 0.05, h, M.reed, x, h / 2, z, 5));
+  }
+}
+reeds(45, 8, 14.2, 8.7, 42);
+reeds(86, 13, 8.6, 5.6, 26);
+
+/* ---------- fontanili springs (north fields) ---------- */
+const springs = [[-64, -48], [22, -56], [96, -44]];
+springs.forEach(([x, z]) => {
+  const pool = new THREE.Mesh(new THREE.CircleGeometry(3, 22), M.water);
+  pool.rotation.x = -Math.PI / 2;
+  pool.position.set(x, 0.18, z);
+  world.add(pool);
+  world.add(flat(1.8, 22, M.canal, x, 0.14, z + 12)); // head channel flowing south
+  colliders.push({ minX: x - 3.2, maxX: x + 3.2, minZ: z - 3.2, maxZ: z + 3.2 });
+  reeds(x, z, 3.5, 3.5, 14);
+});
+
+/* ---------- trees ---------- */
+function poplar(x, z, s = 1) {
+  const g = new THREE.Group();
+  const h = (6 + Math.random() * 3) * s;
+  g.add(cyl(0.14, 0.22, h, M.trunk, 0, h / 2, 0, 7));
+  const crown = new THREE.Mesh(new THREE.SphereGeometry(1.3 * s, 8, 7), Math.random() < 0.5 ? M.leafA : M.leafB);
+  crown.scale.y = 2.6;
+  crown.position.y = h * 0.72;
+  crown.castShadow = true;
+  g.add(crown);
+  g.position.set(x, 0, z);
+  world.add(g);
+  colliders.push({ minX: x - 0.35, maxX: x + 0.35, minZ: z - 0.35, maxZ: z + 0.35 });
+}
+function broadTree(x, z, s = 1, mat = null) {
+  const g = new THREE.Group();
+  const h = (2.2 + Math.random() * 1.4) * s;
+  g.add(cyl(0.16, 0.26, h, M.trunk, 0, h / 2, 0, 7));
+  const m = mat || [M.leafA, M.leafB, M.leafC][Math.floor(Math.random() * 3)];
+  const b1 = new THREE.Mesh(new THREE.IcosahedronGeometry(1.5 * s, 1), m);
+  b1.position.y = h + 0.9 * s; b1.castShadow = true; g.add(b1);
+  const b2 = new THREE.Mesh(new THREE.IcosahedronGeometry(1.0 * s, 1), m);
+  b2.position.set(0.9 * s, h + 0.4 * s, 0.5 * s); b2.castShadow = true; g.add(b2);
+  g.position.set(x, 0, z);
+  world.add(g);
+  colliders.push({ minX: x - 0.4, maxX: x + 0.4, minZ: z - 0.4, maxZ: z + 0.4 });
+}
+function willow(x, z) {
+  const g = new THREE.Group();
+  const h = 2.4 + Math.random();
+  g.add(cyl(0.2, 0.3, h, M.trunk, 0, h / 2, 0, 7));
+  const crown = new THREE.Mesh(new THREE.SphereGeometry(2.1, 9, 7), M.willow);
+  crown.scale.y = 0.75;
+  crown.position.y = h + 0.7;
+  crown.castShadow = true;
+  g.add(crown);
+  g.position.set(x, 0, z);
+  world.add(g);
+  colliders.push({ minX: x - 0.45, maxX: x + 0.45, minZ: z - 0.45, maxZ: z + 0.45 });
+}
+
+// A–A' forestation crossing: layered forest between motorway and railway around the river passage
+[[-4, -6], [2, -2], [-2, 4], [4, 10], [-6, 14], [3, 17], [9, -7], [12, 0], [8, 12], [-8, -3], [14, 16], [18, -5]].forEach(([x, z]) => broadTree(x, z, 1 + Math.random() * 0.5));
+[[6, -10], [0, 20], [16, 8], [-9, 8]].forEach(([x, z]) => poplar(x, z));
+
+// willows along the river banks
+[[-28, -30], [-13, -40], [-27, 2], [-12, 20], [-9, 40], [-26, 55], [-11, -62]].forEach(([x, z]) => willow(x, z));
+
+// reforestation belt along the railway (green barrier, strategy B)
+for (let x = 24; x <= 130; x += 9) broadTree(x + (x % 2 ? 1.5 : -1.5), 19 + (x % 3), 0.9 + Math.random() * 0.5);
+// poplar row flanking the pond and path (existing BreBeMi compensation plan)
+for (let x = 30; x <= 110; x += 8) poplar(x, -8.5 + (x % 2), 0.9 + Math.random() * 0.3);
+// scattered field trees
+[[-70, -70], [-110, -40], [40, -70], [130, -60], [-60, 45], [-100, 80], [60, 45], [140, 50], [100, 85]].forEach(([x, z]) => broadTree(x, z, 1.2));
+
+/* ---------- traffic: cars + train ---------- */
+const cars = [];
+const carCols = [0xc7c9cc, 0x8b1e1e, 0x2f4d63, 0xd9d3c8, 0x3c4245];
+for (let i = 0; i < 6; i++) {
+  const g = new THREE.Group();
+  const bodyMat = new THREE.MeshStandardMaterial({ color: carCols[i % carCols.length], roughness: .4, metalness: .2 });
+  g.add(box(3.9, 0.9, 1.7, bodyMat, 0, 0.75, 0));
+  g.add(box(2.1, 0.7, 1.55, M.glass, -0.2, 1.5, 0));
+  const dir = i % 2 === 0 ? 1 : -1;
+  g.position.set(-180 + i * 63, ROAD_Y - 0.3, dir === 1 ? -19.8 : -16.2);
+  g.rotation.y = dir === 1 ? 0 : Math.PI;
+  world.add(g);
+  cars.push({ g, dir, speed: 24 + (i % 3) * 5 });
+}
+
+const train = new THREE.Group();
+const trainWin = new THREE.MeshStandardMaterial({ color: 0x4a5a66, roughness: .3, metalness: .3 });
+for (let c = 0; c < 3; c++) {
+  const wag = new THREE.Group();
+  const bodyMat = new THREE.MeshStandardMaterial({ color: c === 0 ? 0x35524a : 0x49635b, roughness: .5, metalness: .15 });
+  wag.add(box(13, 2.6, 2.7, bodyMat, 0, 1.7, 0));
+  for (let w = -5; w <= 5; w += 2.4) wag.add(box(1.5, 0.8, 2.76, trainWin, w, 2.1, 0, 0, false));
+  wag.position.x = c * 14;
+  train.add(wag);
+}
+train.position.set(-220, RAIL_Y - 0.5, 26);
+world.add(train);
+let trainX = -220;
+
+/* ---------- facility hotspots ---------- */
+const FACILITIES = [
+  { pos: [-19, 4.5, 12], num: 'SERIO', name: 'The Serio River', desc: 'The blue spine of the plain. The geological line of the fontanili springs follows its course — the corridor reconnects the infraspaces to its banks.' },
+  { pos: [0, 4.8, 6], num: 'A – A′', name: 'Forestation crossing', desc: 'Between BreBeMi and the railway, layered vegetation creates a biodiverse space where a linear passage gives access and connection to the Serio River.' },
+  { pos: [45, 4.2, 8], num: 'B – B′', name: 'Detention pond', desc: 'Gray water from both infrastructures is filtered through canals and this detention pond, which connects to the wider water system.' },
+  { pos: [-20, 4.0, -18.5], num: 'C – C′', name: 'Recreational infraspace', desc: 'Openings in the embankments filter gray water through the landscape, while reforestation blends ecological restoration with recreational spaces. Walk under the bridge to cross to the north fields.' },
+  { pos: [28, 3.2, -4], num: 'D', name: 'Bioswale inlet', desc: 'BreBeMi drainage pollution is intercepted by a network of inlet and outlet bioswale canals with a filtration purpose, collecting and reinfiltrating the water.' },
+  { pos: [86, 3.8, 13], num: 'F · POND', name: 'Fontanili naturalization pond', desc: 'A separate pond dedicated to naturalizing water coming from the irrigation canals linked to the fontanili, reinforcing their ecological and cultural function.' },
+  { pos: [22, 3.4, -56], num: 'F', name: 'Fontanile spring', desc: 'Semi-natural springs shaped over centuries by human intervention — fresh water for irrigation and winter-flooded meadows. Active, inactive and extinct fontanili structure the plain.' },
+  { pos: [76, 8.6, -13.7], num: 'VIEW', name: 'Perception from BreBeMi', desc: 'From the motorway the landscape reads as fragmented boundaries and residual spaces. Climb the ramp: the corridor below shows what the infraspaces can become.' },
+  { pos: [110, 6.4, 26], num: 'RAIL', name: 'The railway', desc: 'Together with BreBeMi, the railway fragmented the historical continuity of fields, canals and settlements — its verges now host the green-barrier reforestation.' },
+  { pos: [60, 3.2, 4], num: 'PATH', name: 'Proposed path', desc: 'A recreational route through the corridor, linking the detention ponds, the forest patches and the Serio River — and connecting outward to the AIDA national bike lane.' },
+  { pos: [0, 3.4, 66], num: 'FOSSO', name: 'Fosso Bergamasco', desc: 'The historic boundary canal of the Bergamo plain — one of the preexistent values that once structured the territory and now anchors the new network.' }
+];
+
+const markerGroup = new THREE.Group();
+world.add(markerGroup);
+const markers = [];
+
+function makeMarkerTexture(text) {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 128;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = 'rgba(29,78,110,0.95)';
+  const w = 240, h = 92, r = 16;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect((256 - w) / 2, (128 - h) / 2, w, h, r);
+  else ctx.rect((256 - w) / 2, (128 - h) / 2, w, h);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = '600 40px "IBM Plex Mono", monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, 128, 66);
+  const tex = new THREE.CanvasTexture(c);
+  tex.anisotropy = 4;
+  return tex;
+}
+
+FACILITIES.forEach(f => {
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: makeMarkerTexture(f.num), transparent: true, depthTest: true
+  }));
+  sprite.position.set(...f.pos);
+  sprite.scale.set(3.6, 1.8, 1);
+  sprite.userData.facility = f;
+  sprite.userData.baseY = f.pos[1];
+  markerGroup.add(sprite);
+  markers.push(sprite);
+});
+
+/* ---------- night: lamps + glow ---------- */
+const nightGroup = new THREE.Group();
+nightGroup.visible = false;
+world.add(nightGroup);
+(function nightLights() {
+  const bulbMat = new THREE.MeshBasicMaterial({ color: COL.warm, fog: false });
+  for (let x = -220; x <= 220; x += 44) {
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), bulbMat);
+    bulb.position.set(x + 1.4, ROAD_Y + 5.9, -22.2);
+    nightGroup.add(bulb);
+  }
+  const p1 = new THREE.PointLight(0xffc98a, 50, 70, 1.8);
+  p1.position.set(0, 9, -18);
+  nightGroup.add(p1);
+  const p2 = new THREE.PointLight(0x9fc3e0, 30, 60, 1.8);
+  p2.position.set(45, 8, 8);
+  nightGroup.add(p2);
+})();
+
+/* ---------- controls: orbit + walk (same engine as project 01) ---------- */
+const orbit = new OrbitControls(camera, canvas);
+orbit.target.set(15, 2, 0);
+orbit.enableDamping = true;
+orbit.dampingFactor = 0.06;
+orbit.maxPolarAngle = Math.PI / 2 - 0.04;
+orbit.minDistance = 12;
+orbit.maxDistance = 260;
+orbit.autoRotate = true;
+orbit.autoRotateSpeed = 0.4;
+canvas.addEventListener('pointerdown', () => { orbit.autoRotate = false; }, { once: true });
+
+let mode = 'orbit';
+const EYE = 1.7;
+let yaw = 0, pitch = 0;
+const keys = {};
+const velocity = new THREE.Vector3();
+const playerPos = new THREE.Vector3(30, EYE, 10);
+let joyVec = { x: 0, y: 0 };
+
+function groundHeight(x, z) {
+  if (x >= RAMPB.minX && x <= RAMPB.maxX && z >= RAMPB.minZ && z <= RAMPB.maxZ) {
+    const t = (x - RAMPB.minX) / (RAMPB.maxX - RAMPB.minX);
+    return RAMPB.hTop * t;
+  }
+  if (x >= VIEW.minX && x <= VIEW.maxX && z >= VIEW.minZ && z <= VIEW.maxZ) return VIEW.h;
+  return 0;
+}
+
+function blockedAt(x, z, curY) {
+  if (curY > 2.5) return false;
+  for (const c of colliders) {
+    if (x > c.minX && x < c.maxX && z > c.minZ && z < c.maxZ) return true;
+  }
+  return false;
+}
+
+function lockPointer() { canvas.requestPointerLock?.(); }
+document.addEventListener('mousemove', e => {
+  if (mode !== 'walk' || document.pointerLockElement !== canvas) return;
+  yaw -= e.movementX * 0.0022;
+  pitch -= e.movementY * 0.0022;
+  pitch = Math.max(-1.25, Math.min(1.25, pitch));
+});
+document.addEventListener('pointerlockchange', () => {
+  if (mode === 'walk' && document.pointerLockElement !== canvas && !isTouch) setMode('orbit');
+});
+document.addEventListener('keydown', e => { keys[e.code] = true; });
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+const joy = document.getElementById('joy');
+const joyKnob = document.getElementById('joyKnob');
+let joyId = null, joyCenter = { x: 0, y: 0 };
+let lookId = null, lookLast = { x: 0, y: 0 };
+
+canvas.addEventListener('touchstart', e => {
+  if (mode !== 'walk') return;
+  for (const t of e.changedTouches) {
+    if (t.clientX < window.innerWidth * 0.45 && joyId === null) {
+      joyId = t.identifier;
+      joyCenter = { x: t.clientX, y: t.clientY };
+      joy.style.display = 'block';
+      joy.style.left = (t.clientX - 55) + 'px';
+      joy.style.top = (t.clientY - 55) + 'px';
+    } else if (lookId === null) {
+      lookId = t.identifier;
+      lookLast = { x: t.clientX, y: t.clientY };
+    }
+  }
+}, { passive: true });
+
+canvas.addEventListener('touchmove', e => {
+  if (mode !== 'walk') return;
+  for (const t of e.changedTouches) {
+    if (t.identifier === joyId) {
+      const dx = t.clientX - joyCenter.x, dy = t.clientY - joyCenter.y;
+      const len = Math.hypot(dx, dy), max = 45;
+      const cl = Math.min(len, max);
+      const nx = len ? dx / len : 0, ny = len ? dy / len : 0;
+      joyVec = { x: nx * (cl / max), y: ny * (cl / max) };
+      joyKnob.style.transform = `translate(calc(-50% + ${nx * cl}px), calc(-50% + ${ny * cl}px))`;
+    } else if (t.identifier === lookId) {
+      yaw -= (t.clientX - lookLast.x) * 0.005;
+      pitch -= (t.clientY - lookLast.y) * 0.005;
+      pitch = Math.max(-1.25, Math.min(1.25, pitch));
+      lookLast = { x: t.clientX, y: t.clientY };
+    }
+  }
+}, { passive: true });
+
+canvas.addEventListener('touchend', e => {
+  for (const t of e.changedTouches) {
+    if (t.identifier === joyId) {
+      joyId = null; joyVec = { x: 0, y: 0 };
+      joy.style.display = 'none';
+      joyKnob.style.transform = 'translate(-50%,-50%)';
+    }
+    if (t.identifier === lookId) lookId = null;
+  }
+});
+
+/* ---------- mode switching ---------- */
+const btnOrbit = document.getElementById('btnOrbit');
+const btnWalk = document.getElementById('btnWalk');
+const hint = document.getElementById('hint');
+const crosshair = document.getElementById('crosshair');
+const walkStart = document.getElementById('walkStart');
+
+function setMode(m) {
+  mode = m;
+  btnOrbit.classList.toggle('active', m === 'orbit');
+  btnWalk.classList.toggle('active', m === 'walk');
+  orbit.enabled = (m === 'orbit');
+  crosshair.style.display = (m === 'walk' && !isTouch) ? 'block' : 'none';
+  if (m === 'walk') {
+    hint.innerHTML = isTouch
+      ? 'left thumb — walk &middot; right thumb — look &middot; tap markers for info'
+      : 'WASD — walk &middot; SHIFT — run &middot; mouse — look &middot; click markers &middot; ESC — exit';
+    yaw = Math.atan2(playerPos.x - (-19), playerPos.z - 0);
+    pitch = 0;
+  } else {
+    hint.innerHTML = 'drag to orbit &middot; scroll to zoom &middot; click a blue marker for info';
+    if (document.pointerLockElement === canvas) document.exitPointerLock();
+    camera.position.set(85, 62, 105);
+    orbit.target.set(15, 2, 0);
+  }
+}
+
+btnOrbit.addEventListener('click', () => setMode('orbit'));
+btnWalk.addEventListener('click', () => {
+  document.getElementById('walkHelp').innerHTML = isTouch
+    ? 'left thumb — virtual joystick to walk<br>right thumb — drag to look around<br>tap the blue markers for info<br>walk under the BreBeMi bridge along the river &middot; climb the gravel ramp for the motorway view'
+    : 'W A S D / arrows — walk &nbsp;&middot;&nbsp; mouse — look around<br>SHIFT — run &nbsp;&middot;&nbsp; click markers — info &nbsp;&middot;&nbsp; ESC — leave walk mode<br>walk under the BreBeMi bridge along the river &middot; climb the gravel ramp for the motorway view';
+  walkStart.classList.add('open');
+});
+document.getElementById('walkGo').addEventListener('click', () => {
+  walkStart.classList.remove('open');
+  playerPos.set(30, EYE, 10);
+  setMode('walk');
+  if (!isTouch) lockPointer();
+});
+
+/* ---------- day / night ---------- */
+let night = false;
+const btnNight = document.getElementById('btnNight');
+btnNight.addEventListener('click', () => {
+  night = !night;
+  btnNight.classList.toggle('active', night);
+  btnNight.innerHTML = night ? '&#9788; Day' : '&#9789; Night';
+  nightGroup.visible = night;
+  scene.background = new THREE.Color(night ? COL.skyNight : COL.sky);
+  scene.fog.color.set(night ? COL.skyNight : COL.sky);
+  M.water.color.set(night ? COL.waterDark : COL.water);
+  hemi.intensity = night ? 0.22 : 1.1;
+  hemi.color.set(night ? 0x7d8ba8 : 0xf4f7f8);
+  sunLight.intensity = night ? 0.3 : 2.4;
+  sunLight.color.set(night ? 0x9fb2d8 : 0xfff3e0);
+  trainWin.emissive.set(night ? 0xffc98a : 0x000000);
+  trainWin.emissiveIntensity = night ? 0.9 : 0;
+  M.glass.emissive.set(night ? 0xffe0b0 : 0x000000);
+  M.glass.emissiveIntensity = night ? 0.6 : 0;
+});
+
+/* ---------- labels toggle ---------- */
+const btnLabels = document.getElementById('btnLabels');
+btnLabels.addEventListener('click', () => {
+  markerGroup.visible = !markerGroup.visible;
+  btnLabels.classList.toggle('active', markerGroup.visible);
+});
+
+/* ---------- picking ---------- */
+const raycaster = new THREE.Raycaster();
+const infoCard = document.getElementById('infoCard');
+
+function showFacility(f) {
+  document.getElementById('infoNum').textContent = f.num;
+  document.getElementById('infoName').textContent = f.name;
+  document.getElementById('infoDesc').textContent = f.desc;
+  infoCard.classList.add('open');
+}
+document.getElementById('infoClose').addEventListener('click', () => infoCard.classList.remove('open'));
+
+function pick(ndcX, ndcY) {
+  raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
+  const hits = raycaster.intersectObjects(markers, false);
+  if (hits.length) { showFacility(hits[0].object.userData.facility); return true; }
+  return false;
+}
+
+canvas.addEventListener('click', e => {
+  if (!markerGroup.visible) return;
+  if (mode === 'walk' && !isTouch) {
+    if (document.pointerLockElement === canvas) pick(0, 0);
+    else lockPointer();
+    return;
+  }
+  pick((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
+});
+
+/* ---------- animation loop ---------- */
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const t = clock.elapsedTime;
+
+  // traffic
+  cars.forEach(c => {
+    c.g.position.x += c.dir * c.speed * dt;
+    if (c.g.position.x > 230) c.g.position.x = -230;
+    if (c.g.position.x < -230) c.g.position.x = 230;
+  });
+  trainX += 26 * dt;
+  if (trainX > 240) trainX = -270;
+  train.position.x = trainX;
+
+  // marker bobbing
+  markers.forEach((m, i) => { m.position.y = m.userData.baseY + Math.sin(t * 1.6 + i) * 0.16; });
+
+  if (mode === 'orbit') {
+    orbit.update();
+  } else {
+    const speed = (keys.ShiftLeft || keys.ShiftRight) ? 10.5 : 5.0;
+    let fwd = 0, strafe = 0;
+    if (keys.KeyW || keys.ArrowUp) fwd += 1;
+    if (keys.KeyS || keys.ArrowDown) fwd -= 1;
+    if (keys.KeyA || keys.ArrowLeft) strafe -= 1;
+    if (keys.KeyD || keys.ArrowRight) strafe += 1;
+    fwd += -joyVec.y; strafe += joyVec.x;
+
+    const len = Math.hypot(fwd, strafe);
+    if (len > 1) { fwd /= len; strafe /= len; }
+
+    const sin = Math.sin(yaw), cos = Math.cos(yaw);
+    velocity.x = (-sin * fwd + cos * strafe) * speed;
+    velocity.z = (-cos * fwd - sin * strafe) * speed;
+
+    const curFeet = playerPos.y - EYE;
+    let nx = playerPos.x + velocity.x * dt;
+    let nz = playerPos.z + velocity.z * dt;
+
+    if (blockedAt(nx, playerPos.z, curFeet)) nx = playerPos.x;
+    if (blockedAt(nx, nz, curFeet)) nz = playerPos.z;
+
+    nx = Math.max(-150, Math.min(150, nx));
+    nz = Math.max(-90, Math.min(80, nz));
+
+    const newGround = groundHeight(nx, nz);
+    if (curFeet > 2.5 && newGround < 0.5 && curFeet - newGround > 2.5) {
+      nx = playerPos.x; nz = playerPos.z;
+    } else {
+      playerPos.x = nx; playerPos.z = nz;
+    }
+
+    const targetY = groundHeight(playerPos.x, playerPos.z) + EYE;
+    playerPos.y += (targetY - playerPos.y) * Math.min(1, dt * 10);
+
+    camera.position.copy(playerPos);
+    camera.rotation.set(0, 0, 0);
+    camera.rotateY(yaw);
+    camera.rotateX(pitch);
+    if (len > 0.1) camera.position.y += Math.sin(t * 9) * 0.045;
+  }
+
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+animate();
+requestAnimationFrame(() => document.getElementById('loading').classList.add('done'));
+</script>
+</body>
+</html>

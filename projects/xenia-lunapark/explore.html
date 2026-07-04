@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Explore in 3D — Xenia Lunapark</title>
+<meta name="description" content="Interactive 3D model of Xenia Lunapark, Karteros — orbit the site or walk it in first person.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='60' r='40' fill='%238b1e1e'/></svg>">
+<style>
+  :root {
+    --paper: #f4f0ed; --pink: #ecd7d5; --red: #8b1e1e; --red-dark: #6e1414;
+    --ink: #1d1a19; --grey: #6f6a68;
+    --mono: 'IBM Plex Mono', 'Courier New', monospace;
+    --sans: 'Space Grotesk', 'Segoe UI', Arial, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body { font-family: var(--sans); background: var(--ink); color: var(--paper); }
+  #scene { position: fixed; inset: 0; display: block; touch-action: none; }
+
+  /* top bar */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 20;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: 14px 16px; pointer-events: none; gap: 10px;
+  }
+  .topbar > * { pointer-events: auto; }
+  .back {
+    font-family: var(--mono); font-size: 12px; letter-spacing: .14em;
+    text-transform: uppercase; color: #fff; text-decoration: none;
+    background: rgba(20,17,16,.72); padding: 10px 16px; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,.15);
+  }
+  .back:hover { background: var(--red); }
+  .title-chip {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .18em;
+    text-transform: uppercase; color: rgba(255,255,255,.85);
+    background: rgba(20,17,16,.72); padding: 10px 16px; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,.15);
+    display: none;
+  }
+  @media (min-width: 700px) { .title-chip { display: block; } }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .ctl {
+    font-family: var(--mono); font-size: 12px; letter-spacing: .1em;
+    text-transform: uppercase; color: #fff; cursor: pointer;
+    background: rgba(20,17,16,.72); padding: 10px 14px; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,.15); transition: background .2s;
+  }
+  .ctl:hover { background: rgba(60,50,48,.85); }
+  .ctl.active { background: var(--red); border-color: var(--red); }
+
+  /* hint bar */
+  #hint {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    z-index: 20; font-family: var(--mono); font-size: 11.5px; letter-spacing: .1em;
+    color: rgba(255,255,255,.9); background: rgba(20,17,16,.72);
+    padding: 9px 18px; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,.15); text-align: center;
+    max-width: 92vw; pointer-events: none;
+  }
+
+  /* info card */
+  #infoCard {
+    position: fixed; left: 16px; bottom: 56px; z-index: 25;
+    width: min(320px, calc(100vw - 32px));
+    background: rgba(244,240,237,.96); color: var(--ink);
+    border-top: 4px solid var(--red);
+    padding: 18px 20px; display: none;
+    box-shadow: 0 20px 50px rgba(0,0,0,.4);
+  }
+  #infoCard.open { display: block; }
+  #infoCard .num { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; color: var(--red); text-transform: uppercase; }
+  #infoCard h3 { font-size: 19px; margin: 4px 0 6px; }
+  #infoCard p { font-size: 13.5px; line-height: 1.55; color: #444; }
+  #infoCard .price { font-family: var(--mono); font-size: 12px; color: var(--red); margin-top: 8px; font-weight: 600; }
+  #infoClose {
+    position: absolute; top: 8px; right: 10px; border: 0; background: none;
+    font-size: 20px; cursor: pointer; color: var(--grey); line-height: 1;
+  }
+
+  /* crosshair (walk mode) */
+  #crosshair {
+    position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    z-index: 15; width: 14px; height: 14px; display: none; pointer-events: none;
+  }
+  #crosshair::before, #crosshair::after {
+    content: ''; position: absolute; background: rgba(255,255,255,.85);
+  }
+  #crosshair::before { left: 6px; top: 0; width: 2px; height: 14px; }
+  #crosshair::after  { top: 6px; left: 0; width: 14px; height: 2px; }
+
+  /* walk-start overlay */
+  #walkStart {
+    position: fixed; inset: 0; z-index: 40; display: none;
+    align-items: center; justify-content: center; flex-direction: column;
+    background: rgba(20,17,16,.82); text-align: center; padding: 24px;
+  }
+  #walkStart.open { display: flex; }
+  #walkStart h2 { text-transform: uppercase; letter-spacing: .04em; font-size: clamp(22px, 4vw, 34px); }
+  #walkStart .sun-ico { width: 74px; height: 37px; background: var(--red); border-radius: 74px 74px 0 0; margin-bottom: 22px; }
+  #walkStart p { font-family: var(--mono); font-size: 12.5px; letter-spacing: .08em; color: #cfc7c3; margin: 14px 0 26px; line-height: 2; }
+  #walkStart button {
+    font-family: var(--mono); font-size: 14px; letter-spacing: .16em; text-transform: uppercase;
+    background: var(--red); border: 0; color: #fff; padding: 15px 38px; cursor: pointer;
+  }
+  #walkStart button:hover { background: var(--red-dark); }
+
+  /* loading */
+  #loading {
+    position: fixed; inset: 0; z-index: 50; background: var(--ink);
+    display: flex; align-items: center; justify-content: center; flex-direction: column;
+    transition: opacity .6s;
+  }
+  #loading.done { opacity: 0; pointer-events: none; }
+  #loading .sun-ico { width: 90px; height: 45px; background: var(--red); border-radius: 90px 90px 0 0; animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { transform: translateY(8px); opacity: .75; } }
+  #loading p { margin-top: 20px; font-family: var(--mono); font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: #9c928e; }
+
+  /* mobile joystick */
+  #joy {
+    position: fixed; z-index: 30; width: 110px; height: 110px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.35); background: rgba(255,255,255,.06);
+    display: none; pointer-events: none;
+  }
+  #joyKnob {
+    position: absolute; left: 50%; top: 50%; width: 46px; height: 46px;
+    border-radius: 50%; background: rgba(139,30,30,.85);
+    transform: translate(-50%,-50%);
+  }
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+
+<div class="topbar">
+  <a class="back" href="index.html">&#8592; Project</a>
+  <div class="title-chip">Xenia Lunapark &middot; Karteros &middot; 3D site model</div>
+  <div class="controls">
+    <button class="ctl active" id="btnOrbit">&#10227; Orbit</button>
+    <button class="ctl" id="btnWalk">&#128694; Walk</button>
+    <button class="ctl" id="btnNight">&#9789; Night</button>
+    <button class="ctl active" id="btnLabels">&#9679; Labels</button>
+  </div>
+</div>
+
+<div id="hint">drag to orbit &middot; scroll to zoom &middot; click a red marker for info</div>
+
+<div id="infoCard">
+  <button id="infoClose">&times;</button>
+  <div class="num" id="infoNum"></div>
+  <h3 id="infoName"></h3>
+  <p id="infoDesc"></p>
+  <div class="price" id="infoPrice"></div>
+</div>
+
+<div id="crosshair"></div>
+
+<div id="walkStart">
+  <div class="sun-ico"></div>
+  <h2>First-person visit</h2>
+  <p id="walkHelp">
+    W A S D / arrows — walk &nbsp;&middot;&nbsp; mouse — look around<br>
+    SHIFT — run &nbsp;&middot;&nbsp; click markers — info &nbsp;&middot;&nbsp; ESC — leave walk mode<br>
+    find the ramp on the east pavilion for the roof terrace
+  </p>
+  <button id="walkGo">Start walking</button>
+</div>
+
+<div id="loading">
+  <div class="sun-ico"></div>
+  <p>Building Karteros&hellip;</p>
+</div>
+
+<div id="joy"><div id="joyKnob"></div></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ============================================================
+   XENIA LUNAPARK — interactive 3D site model
+   Stylised reconstruction of Aris Konstantinidis' Xenia Motel
+   (1963) at Karteros, reprogrammed as the Lunapark proposal.
+   Palette: concrete greys, Minoan red, dusty-pink sky.
+   ============================================================ */
+
+const COL = {
+  red: 0x8b1e1e, redBright: 0xa32626, pinkSky: 0xecd7d5, paper: 0xf4f0ed,
+  concrete: 0xb9b2ad, concreteDark: 0x8f8781, slab: 0x7a736e,
+  plaza: 0xdfc0bc, sand: 0xd9c49a, seaDay: 0x5f7d8c, ground: 0xc9bfae,
+  olive: 0x6b7355, oliveDark: 0x555c40, night: 0x14161f, seaNight: 0x1c2733,
+  warm: 0xffd9a0
+};
+
+const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+
+/* ---------- renderer / scene / camera ---------- */
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(COL.pinkSky);
+scene.fog = new THREE.Fog(COL.pinkSky, 120, 320);
+
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 600);
+camera.position.set(70, 55, 95);
+
+/* ---------- lights ---------- */
+const hemi = new THREE.HemisphereLight(0xfff1e8, 0x8a7d6f, 1.15);
+scene.add(hemi);
+const sunLight = new THREE.DirectionalLight(0xffe9d6, 2.6);
+sunLight.position.set(-60, 80, 40);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.set(2048, 2048);
+sunLight.shadow.camera.left = -90; sunLight.shadow.camera.right = 90;
+sunLight.shadow.camera.top = 90; sunLight.shadow.camera.bottom = -90;
+sunLight.shadow.camera.far = 260;
+sunLight.shadow.bias = -0.0005;
+scene.add(sunLight);
+
+/* ---------- materials ---------- */
+const M = {
+  concrete: new THREE.MeshStandardMaterial({ color: COL.concrete, roughness: .92 }),
+  concreteDark: new THREE.MeshStandardMaterial({ color: COL.concreteDark, roughness: .92 }),
+  slab: new THREE.MeshStandardMaterial({ color: COL.slab, roughness: .85 }),
+  red: new THREE.MeshStandardMaterial({ color: COL.red, roughness: .6 }),
+  redBright: new THREE.MeshStandardMaterial({ color: COL.redBright, roughness: .5 }),
+  glassDay: new THREE.MeshStandardMaterial({ color: 0x3a4448, roughness: .25, metalness: .35 }),
+  plaza: new THREE.MeshStandardMaterial({ color: COL.plaza, roughness: .95 }),
+  sand: new THREE.MeshStandardMaterial({ color: COL.sand, roughness: 1 }),
+  ground: new THREE.MeshStandardMaterial({ color: COL.ground, roughness: 1 }),
+  path: new THREE.MeshStandardMaterial({ color: 0xcfc8bf, roughness: .95 }),
+  olive: new THREE.MeshStandardMaterial({ color: COL.olive, roughness: 1 }),
+  oliveDark: new THREE.MeshStandardMaterial({ color: COL.oliveDark, roughness: 1 }),
+  trunk: new THREE.MeshStandardMaterial({ color: 0x6e5a44, roughness: 1 }),
+  white: new THREE.MeshStandardMaterial({ color: 0xf1ece6, roughness: .8 }),
+  dark: new THREE.MeshStandardMaterial({ color: 0x2c2825, roughness: .8 })
+};
+
+/* ---------- helpers ---------- */
+function box(w, h, d, mat, x, y, z, ry = 0, shadow = true) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  m.position.set(x, y, z);
+  m.rotation.y = ry;
+  if (shadow) { m.castShadow = true; m.receiveShadow = true; }
+  return m;
+}
+function cyl(rT, rB, h, mat, x, y, z, seg = 12) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(rT, rB, h, seg), mat);
+  m.position.set(x, y, z);
+  m.castShadow = true; m.receiveShadow = true;
+  return m;
+}
+
+/* ---------- terrain ---------- */
+const world = new THREE.Group();
+scene.add(world);
+
+// site ground (ends where the beach begins, so the sea stays visible)
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(420, 200), M.ground);
+ground.rotation.x = -Math.PI / 2;
+ground.position.set(0, -0.02, 53);
+ground.receiveShadow = true;
+world.add(ground);
+
+// beach strip (north = -Z), spans z -73..-47, meeting the sea
+const beach = new THREE.Mesh(new THREE.PlaneGeometry(420, 26), M.sand);
+beach.rotation.x = -Math.PI / 2;
+beach.position.set(0, 0.0, -60);
+beach.receiveShadow = true;
+world.add(beach);
+
+// sea — animated plane
+const seaGeo = new THREE.PlaneGeometry(420, 120, 60, 16);
+const seaMat = new THREE.MeshStandardMaterial({ color: COL.seaDay, roughness: .35, metalness: .1 });
+const sea = new THREE.Mesh(seaGeo, seaMat);
+sea.rotation.x = -Math.PI / 2;
+sea.position.set(0, -0.25, -133);
+world.add(sea);
+const seaBase = seaGeo.attributes.position.array.slice();
+
+// courtyard plaza (the pink square of the boards)
+const plaza = new THREE.Mesh(new THREE.PlaneGeometry(46, 34), M.plaza);
+plaza.rotation.x = -Math.PI / 2;
+plaza.position.set(0, 0.02, 0);
+plaza.receiveShadow = true;
+world.add(plaza);
+
+// corridor axis: courtyard -> beach
+const path = new THREE.Mesh(new THREE.PlaneGeometry(5, 32), M.path);
+path.rotation.x = -Math.PI / 2;
+path.position.set(0, 0.03, -33);
+path.receiveShadow = true;
+world.add(path);
+
+// hills south + east (rolling Cretan landscape)
+[[-140, 80, 50, 16], [-60, 108, 62, 20], [30, 112, 55, 18], [120, 88, 48, 15], [172, 25, 40, 12], [-178, 12, 42, 13]].forEach(([x, z, r, h]) => {
+  const hill = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2), M.olive);
+  hill.scale.y = h / r;
+  hill.position.set(x, -0.5, z);
+  hill.receiveShadow = true;
+  world.add(hill);
+});
+
+/* ---------- the red sun (from the boards) ---------- */
+const sunDisc = new THREE.Mesh(
+  new THREE.CircleGeometry(22, 48),
+  new THREE.MeshBasicMaterial({ color: COL.red, fog: false })
+);
+sunDisc.position.set(-25, 16, -240);
+world.add(sunDisc);
+
+/* ---------- pavilions ---------- */
+/* Konstantinidis' grid: 8 one-storey pavilions around the central
+   courtyard. L 26 x W 9 x H 3.2, flat overhanging slab roofs,
+   verandas with slender columns facing the courtyard. */
+
+const P_L = 26, P_W = 9, P_H = 3.2;
+const colliders = [];   // {minX,maxX,minZ,maxZ} blocked at ground level
+
+const PAVILIONS = [
+  // [x, z, ry(rad), facing dir toward courtyard, open colonnade?]
+  { x: -15, z: -21.5, ry: 0, face: 'S', open: true  },   // NW — reception / exhibition (walk-through)
+  { x: 15, z: -21.5, ry: 0, face: 'S', open: false },    // NE — café & bar
+  { x: -15, z: 21.5, ry: 0, face: 'N', open: false },    // SW — funhouse & playhouse
+  { x: 15, z: 21.5, ry: 0, face: 'N', open: false },     // SE — arcade & indoor mini golf
+  { x: -28.5, z: -8, ry: Math.PI / 2, face: 'E', open: false }, // W1 — food market
+  { x: -28.5, z: 8, ry: Math.PI / 2, face: 'E', open: false },  // W2 — bakery / pastry
+  { x: 28.5, z: -8, ry: Math.PI / 2, face: 'W', open: false, roofTerrace: true }, // E1 — VR/AR + roof terrace
+  { x: 28.5, z: 8, ry: Math.PI / 2, face: 'W', open: false }    // E2 — escape room & karaoke
+];
+
+function buildPavilion(p) {
+  const g = new THREE.Group();
+
+  if (p.open) {
+    // open colonnade: slab roof on columns + one back wall
+    for (let i = -2; i <= 2; i++) {
+      g.add(cyl(0.16, 0.16, P_H, M.concreteDark, i * (P_L / 4 - 0.5), P_H / 2, -P_W / 2 + 0.5));
+      g.add(cyl(0.16, 0.16, P_H, M.concreteDark, i * (P_L / 4 - 0.5), P_H / 2, P_W / 2 - 0.5));
+    }
+    g.add(box(P_L - 2, P_H, 0.35, M.concrete, 0, P_H / 2, -P_W / 2 + 2.2)); // exhibition wall
+    // red exhibition panels
+    for (let i = -1; i <= 1; i++) g.add(box(2.6, 1.8, 0.1, M.red, i * 6, 1.5, -P_W / 2 + 2.5));
+  } else {
+    // solid volume with veranda
+    const body = box(P_L, P_H, P_W - 2.2, M.concrete, 0, P_H / 2, -1.1);
+    g.add(body);
+    // glazing strip on courtyard face
+    g.add(box(P_L - 1.6, 1.7, 0.15, M.glassDay, 0, 1.5, P_W / 2 - 2.25));
+    // red doors
+    for (let i = -1; i <= 1; i++) g.add(box(1.1, 2.2, 0.22, M.red, i * 7, 1.1, P_W / 2 - 2.28));
+    // veranda columns
+    for (let i = -3; i <= 3; i++) g.add(cyl(0.14, 0.14, P_H, M.concreteDark, i * (P_L / 6 - 0.4), P_H / 2, P_W / 2 - 0.4));
+  }
+
+  // overhanging flat slab roof — the signature element
+  const roof = box(P_L + 2.4, 0.38, P_W + 1.8, M.slab, 0, P_H + 0.19, 0);
+  g.add(roof);
+  // slim red fascia line under the slab edge (Minoan red accents)
+  g.add(box(P_L + 2.4, 0.1, 0.1, M.redBright, 0, P_H - 0.02, (P_W + 1.8) / 2, 0, false));
+
+  if (p.roofTerrace) {
+    // parapet + furniture on the walkable roof
+    const pw = P_W + 1.8, pl = P_L + 2.4;
+    g.add(box(pl, 0.9, 0.12, M.concreteDark, 0, P_H + 0.83, -pw / 2));
+    g.add(box(pl, 0.9, 0.12, M.concreteDark, 0, P_H + 0.83, pw / 2));
+    g.add(box(0.12, 0.9, pw, M.concreteDark, -pl / 2, P_H + 0.83, 0));
+    g.add(box(0.12, 0.9, pw, M.concreteDark, pl / 2, P_H + 0.83, 0));
+    for (let i = -2; i <= 2; i++) {
+      g.add(box(1.6, 0.35, 0.6, M.red, i * 4.4, P_H + 0.56, -2));      // benches
+      g.add(cyl(1.1, 1.1, 0.06, M.white, i * 4.4, P_H + 2.5, 1.5, 16)); // umbrellas
+      g.add(cyl(0.05, 0.05, 2.1, M.dark, i * 4.4, P_H + 1.5, 1.5, 8));
+    }
+  }
+
+  g.position.set(p.x, 0, p.z);
+  g.rotation.y = p.ry;
+  world.add(g);
+
+  // collider AABB (world space) — skip for the open colonnade
+  if (!p.open) {
+    const hw = p.ry === 0 ? P_L / 2 + 0.4 : P_W / 2 + 0.4;
+    const hd = p.ry === 0 ? P_W / 2 + 0.4 : P_L / 2 + 0.4;
+    colliders.push({ minX: p.x - hw, maxX: p.x + hw, minZ: p.z - hd, maxZ: p.z + hd });
+  }
+}
+PAVILIONS.forEach(buildPavilion);
+
+/* ---------- roof terrace ramp (east pavilion E1) ----------
+   E1 occupies x 24..33, z -21..5. Ramp climbs along its east
+   side from z=-21 (ground) to z=5 (roof level 3.58). */
+const RAMP = { minX: 33.4, maxX: 35.8, minZ: -21, maxZ: 5, hTop: P_H + 0.38 };
+const ROOF = { minX: 23.2, maxX: 33.4, minZ: -21, maxZ: 5, h: P_H + 0.38 };
+
+(function buildRamp() {
+  const len = RAMP.maxZ - RAMP.minZ;
+  const ramp = new THREE.Mesh(new THREE.BoxGeometry(RAMP.maxX - RAMP.minX, 0.3, len), M.concreteDark);
+  ramp.castShadow = ramp.receiveShadow = true;
+  ramp.position.set((RAMP.minX + RAMP.maxX) / 2, RAMP.hTop / 2, (RAMP.minZ + RAMP.maxZ) / 2);
+  ramp.rotation.x = -Math.atan2(RAMP.hTop, len);
+  world.add(ramp);
+  // red guide rail
+  const rail = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, Math.hypot(len, RAMP.hTop)), M.redBright);
+  rail.position.set(RAMP.maxX - 0.1, RAMP.hTop / 2 + 1.0, (RAMP.minZ + RAMP.maxZ) / 2);
+  rail.rotation.x = -Math.atan2(RAMP.hTop, len);
+  world.add(rail);
+  for (let i = 0; i <= 6; i++) {
+    const t = i / 6;
+    const post = cyl(0.05, 0.05, 1.0, M.redBright, RAMP.maxX - 0.1, RAMP.hTop * t + 0.5, RAMP.minZ + len * t, 8);
+    world.add(post);
+  }
+})();
+
+/* ---------- lunapark furniture in the courtyard ---------- */
+
+// STAGE (16) — south side of courtyard
+(function stage() {
+  const g = new THREE.Group();
+  g.add(box(9, 0.7, 5.5, M.concreteDark, 0, 0.35, 0));
+  g.add(box(9, 3.4, 0.3, M.red, 0, 1.7, -2.6)); // red backdrop
+  g.add(box(0.9, 0.35, 5.5, M.concreteDark, 5, 0.17, 0)); // side step
+  g.position.set(-5, 0, 12.5);
+  world.add(g);
+  colliders.push({ minX: -10, maxX: 0.2, minZ: 9.6, maxZ: 15.4 });
+})();
+
+// SWINGS (18)
+(function swings() {
+  const g = new THREE.Group();
+  const h = 3.0, w = 5;
+  // A-frame legs
+  [[-w / 2, -0.9], [-w / 2, 0.9], [w / 2, -0.9], [w / 2, 0.9]].forEach(([x, z]) => {
+    const leg = cyl(0.09, 0.09, h + 0.4, M.redBright, x, h / 2, z / 1);
+    leg.rotation.x = z > 0 ? -0.28 : 0.28;
+    g.add(leg);
+  });
+  const bar = cyl(0.07, 0.07, w, M.redBright, 0, h, 0, 10);
+  bar.rotation.z = Math.PI / 2;
+  g.add(bar);
+  [-1.4, 0, 1.4].forEach(x => {
+    g.add(cyl(0.02, 0.02, 1.5, M.dark, x - 0.25, h - 0.85, 0, 6));
+    g.add(cyl(0.02, 0.02, 1.5, M.dark, x + 0.25, h - 0.85, 0, 6));
+    g.add(box(0.65, 0.06, 0.28, M.red, x, h - 1.65, 0));
+  });
+  g.position.set(12, 0, 9);
+  world.add(g);
+})();
+
+// SLIDE + play tower (playground)
+(function tower() {
+  const g = new THREE.Group();
+  [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([x, z]) => g.add(cyl(0.1, 0.1, 2.4, M.dark, x, 1.2, z)));
+  g.add(box(2.6, 0.18, 2.6, M.red, 0, 2.4, 0));
+  const roofT = new THREE.Mesh(new THREE.ConeGeometry(2.1, 1.2, 4), M.red);
+  roofT.position.set(0, 3.6, 0); roofT.rotation.y = Math.PI / 4;
+  roofT.castShadow = true;
+  g.add(roofT);
+  const slide = box(1.0, 0.12, 4.6, M.redBright, 0, 1.35, 3.2);
+  slide.rotation.x = Math.PI / 5.2;
+  g.add(slide);
+  g.add(cyl(0.05, 0.05, 2.4, M.dark, -1.3, 1.2, 0, 8)); // fire pole
+  g.position.set(17, 0, 3);
+  world.add(g);
+  colliders.push({ minX: 15.6, maxX: 18.4, minZ: 1.6, maxZ: 4.4 });
+})();
+
+// FOOD TRUCK — west entrance
+(function truck() {
+  const g = new THREE.Group();
+  g.add(box(4.6, 2.0, 2.1, M.red, 0, 1.35, 0));
+  g.add(box(1.3, 1.5, 2.1, M.redBright, 2.9, 1.1, 0)); // cab
+  g.add(box(1.35, 0.5, 2.0, M.glassDay, 2.92, 1.95, 0)); // windshield block
+  [[-1.6, -1.05], [1.4, -1.05], [-1.6, 1.05], [1.4, 1.05]].forEach(([x, z]) => {
+    const wheel = cyl(0.42, 0.42, 0.3, M.dark, x, 0.42, z, 14);
+    wheel.rotation.x = Math.PI / 2;
+    g.add(wheel);
+  });
+  const awn = box(2.6, 0.08, 1.3, M.white, -0.6, 2.5, 1.6);
+  awn.rotation.x = 0.35;
+  g.add(awn);
+  g.add(box(3.0, 0.9, 0.12, M.dark, -0.6, 1.6, 1.06)); // serving hatch
+  g.position.set(-19, 0, -6);
+  g.rotation.y = 0.5;
+  world.add(g);
+  colliders.push({ minX: -22.4, maxX: -15.6, minZ: -9, maxZ: -3 });
+})();
+
+// PING PONG (19)
+[[6, -10], [10.5, -10]].forEach(([x, z]) => {
+  const g = new THREE.Group();
+  g.add(box(2.7, 0.1, 1.5, M.red, 0, 0.78, 0));
+  g.add(box(2.7, 0.02, 0.02, M.white, 0, 0.95, 0));
+  g.add(box(0.05, 0.18, 1.5, M.white, 0, 0.9, 0));
+  g.add(box(0.5, 0.74, 0.5, M.concreteDark, -0.9, 0.37, 0));
+  g.add(box(0.5, 0.74, 0.5, M.concreteDark, 0.9, 0.37, 0));
+  g.position.set(x, 0, z);
+  g.rotation.y = 0.2;
+  world.add(g);
+});
+
+// MINI GOLF (14) — little mounds + red flags, NW corner of plaza
+(function minigolf() {
+  const spots = [[-14, -9], [-10, -12], [-6, -8], [-11, -5]];
+  spots.forEach(([x, z], i) => {
+    const mound = new THREE.Mesh(new THREE.SphereGeometry(1.1, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), M.plaza);
+    mound.scale.y = 0.25;
+    mound.position.set(x, 0, z);
+    mound.receiveShadow = true;
+    world.add(mound);
+    world.add(cyl(0.03, 0.03, 1.5, M.white, x + 0.5, 0.75, z, 6));
+    const flag = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.5, 3), M.redBright);
+    flag.rotation.z = -Math.PI / 2;
+    flag.position.set(x + 0.75, 1.35, z);
+    world.add(flag);
+  });
+})();
+
+// HAMMOCKS (15) — between beach path and NE pavilion
+(function hammocks() {
+  [[5.5, -30], [9.5, -33]].forEach(([x, z]) => {
+    const g = new THREE.Group();
+    g.add(cyl(0.09, 0.11, 1.8, M.trunk, -1.5, 0.9, 0));
+    g.add(cyl(0.09, 0.11, 1.8, M.trunk, 1.5, 0.9, 0));
+    const cloth = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 2.6, 10, 1, true, Math.PI, Math.PI), M.red);
+    cloth.rotation.z = Math.PI / 2;
+    cloth.position.y = 1.0;
+    cloth.material = M.red;
+    g.add(cloth);
+    g.position.set(x, 0, z);
+    g.rotation.y = Math.random() * 1;
+    world.add(g);
+  });
+})();
+
+// MARKET STALLS — near west (food market) pavilion
+[[-20, 2, 0.3], [-17, 6, -0.2]].forEach(([x, z, r]) => {
+  const g = new THREE.Group();
+  g.add(box(2.2, 0.9, 1.2, M.white, 0, 0.45, 0));
+  [[-1, -0.5], [1, -0.5], [-1, 0.5], [1, 0.5]].forEach(([px, pz]) => g.add(cyl(0.04, 0.04, 2.2, M.dark, px, 1.1, pz, 6)));
+  const top = box(2.5, 0.1, 1.6, M.red, 0, 2.25, 0);
+  top.rotation.z = 0.06;
+  g.add(top);
+  g.position.set(x, 0, z);
+  g.rotation.y = r;
+  world.add(g);
+});
+
+// BENCHES around the courtyard
+[[-8, -13, 0], [2, -13, 0], [-21, 12, 1.2], [21, 13, -0.6]].forEach(([x, z, r]) => {
+  const g = new THREE.Group();
+  g.add(box(2.4, 0.12, 0.55, M.slab, 0, 0.45, 0));
+  g.add(box(0.5, 0.45, 0.5, M.concreteDark, -0.8, 0.22, 0));
+  g.add(box(0.5, 0.45, 0.5, M.concreteDark, 0.8, 0.22, 0));
+  g.position.set(x, 0, z); g.rotation.y = r;
+  world.add(g);
+});
+
+/* ---------- beach props ---------- */
+for (let i = 0; i < 7; i++) {
+  const x = -34 + i * 11 + (i % 2) * 3;
+  const z = -57 - (i % 3) * 4;
+  world.add(cyl(0.05, 0.05, 2.2, M.dark, x, 1.1, z, 8));
+  const um = new THREE.Mesh(new THREE.ConeGeometry(1.5, 0.6, 10), i % 2 ? M.red : M.white);
+  um.position.set(x, 2.25, z);
+  um.castShadow = true;
+  world.add(um);
+  const bed = box(1.7, 0.25, 0.7, i % 2 ? M.white : M.red, x + 1.4, 0.14, z + 0.4);
+  world.add(bed);
+}
+
+/* ---------- olive trees ---------- */
+const treeSpots = [
+  [-45, -25], [-52, 5], [-48, 30], [-38, 42], [-12, 44], [16, 45], [38, 40],
+  [48, 22], [52, -2], [46, -24], [24, -38], [-24, -38], [-60, -12], [60, 12],
+  [-70, 25], [70, -18], [8, 32], [-40, -16]
+];
+treeSpots.forEach(([x, z]) => {
+  const g = new THREE.Group();
+  const h = 1.6 + Math.random() * 1.2;
+  g.add(cyl(0.12, 0.2, h, M.trunk, 0, h / 2, 0, 8));
+  const blob = (r, px, py, pz, dark) => {
+    const b = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), dark ? M.oliveDark : M.olive);
+    b.position.set(px, py, pz);
+    b.castShadow = true;
+    g.add(b);
+  };
+  blob(1.1 + Math.random() * .5, 0, h + 0.7, 0, false);
+  blob(0.8, 0.7, h + 0.3, 0.3, true);
+  blob(0.7, -0.6, h + 0.5, -0.3, false);
+  g.position.set(x, 0, z);
+  world.add(g);
+  colliders.push({ minX: x - 0.35, maxX: x + 0.35, minZ: z - 0.35, maxZ: z + 0.35 });
+});
+
+/* ---------- night: string lights + stage glow ---------- */
+const nightGroup = new THREE.Group();
+nightGroup.visible = false;
+world.add(nightGroup);
+
+(function stringLights() {
+  const bulbMat = new THREE.MeshBasicMaterial({ color: COL.warm, fog: false });
+  const runs = [
+    [[-20, -14], [20, -14]], [[-20, 14.8], [-11, 14.8]], [[1, 14.8], [20, 14.8]],
+    [[-22, -12], [-22, 12]], [[22, -12], [22, 12]]
+  ];
+  runs.forEach(([[x1, z1], [x2, z2]]) => {
+    const n = 14;
+    for (let i = 0; i <= n; i++) {
+      const t = i / n;
+      const sag = Math.sin(Math.PI * t) * -0.6;
+      const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 6), bulbMat);
+      bulb.position.set(x1 + (x2 - x1) * t, 3.4 + sag, z1 + (z2 - z1) * t);
+      nightGroup.add(bulb);
+    }
+  });
+  const courtLight = new THREE.PointLight(0xffc98a, 40, 60, 1.8);
+  courtLight.position.set(0, 6, 0);
+  nightGroup.add(courtLight);
+  const stageSpot = new THREE.SpotLight(0xffe0b0, 80, 40, 0.5, 0.5, 1.5);
+  stageSpot.position.set(-5, 9, 4);
+  stageSpot.target.position.set(-5, 0.7, 12.5);
+  nightGroup.add(stageSpot, stageSpot.target);
+})();
+
+/* ---------- facility hotspots ---------- */
+const FACILITIES = [
+  { pos: [-15, 4.6, -21.5], num: '06', name: 'Reception / Exhibition', desc: 'Open colonnade pavilion — the history of the Xenia Motel and its reconceptualisation, free to wander through.', price: 'FREE' },
+  { pos: [15, 4.6, -21.5], num: '04 · 05', name: 'Café & Bar', desc: 'Convivial spaces for social interaction from morning coffee to late-night drinks on the veranda.', price: '€ – €€' },
+  { pos: [-28.5, 4.6, -8], num: '03', name: 'Food Market', desc: 'Run by Cretan women’s food cooperatives — rotating stalls of traditional recipes and local produce.', price: '€' },
+  { pos: [-28.5, 4.6, 8], num: '02', name: 'Bakery / Pastry Shop', desc: 'Cretan pastries by the women’s cooperatives — the smell reaches the courtyard.', price: '€' },
+  { pos: [28.5, 5.6, -8], num: '11 · ROOF', name: 'VR/AR Experience + Roof Terrace', desc: 'Immersive experiences with FORTH downstairs; take the red ramp to the public roof terrace above.', price: '€€€ / terrace FREE' },
+  { pos: [28.5, 4.6, 8], num: '10 · 12', name: 'Karaoke Rooms & Escape Room', desc: 'Escape room curated with the museums of Heraklion; karaoke co-designed with University of Crete students.', price: '€€' },
+  { pos: [-15, 4.6, 21.5], num: '08 · 09', name: 'Funhouse & Playhouse', desc: 'Indoor play for kids and the young at heart, co-designed with University of Crete students.', price: 'FREE – €' },
+  { pos: [15, 4.6, 21.5], num: '07', name: 'Indoor Mini Golf & Arcade', desc: 'Rainy-day games inside the south-east pavilion.', price: '€' },
+  { pos: [-5, 4.9, 12.5], num: '16', name: 'Stage', desc: 'Concerts, theatre and open-mic nights with the Cultural Association Agios Ioannis Pitsilias.', price: 'FREE – ticketed' },
+  { pos: [15, 4.2, 5], num: '18', name: 'Playground', desc: 'Swings, tower and slide — freely accessible, all ages welcome.', price: 'FREE' },
+  { pos: [8, 3.2, -10], num: '19', name: 'Ping Pong Area', desc: 'Open-air tables in the courtyard — bring a friend or find one here.', price: 'FREE' },
+  { pos: [-10, 3.0, -8.5], num: '14', name: 'Outdoor Mini Golf', desc: 'A gentle course of mounds and red flags across the plaza corner.', price: '€' },
+  { pos: [-19, 3.8, -6], num: 'FT', name: 'Food Truck', desc: 'Street snacks at the west entrance square.', price: '€' },
+  { pos: [7.5, 3.2, -31.5], num: '15', name: 'Hammock Area', desc: 'Sea-breeze naps along the corridor axis to the beach.', price: 'FREE' },
+  { pos: [0, 3.4, -58], num: 'BEACH', name: 'Karteros Beach', desc: 'Long, sandy and shallow — umbrellas, sunbeds and the Aegean horizon.', price: 'FREE' }
+];
+
+const markerGroup = new THREE.Group();
+world.add(markerGroup);
+const markers = [];
+
+function makeMarkerTexture(text) {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 128;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = 'rgba(139,30,30,0.94)';
+  const w = 240, h = 92, r = 16;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect((256 - w) / 2, (128 - h) / 2, w, h, r);
+  else ctx.rect((256 - w) / 2, (128 - h) / 2, w, h);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = '600 44px "IBM Plex Mono", monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, 128, 66);
+  const tex = new THREE.CanvasTexture(c);
+  tex.anisotropy = 4;
+  return tex;
+}
+
+FACILITIES.forEach((f, i) => {
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: makeMarkerTexture(f.num), transparent: true, depthTest: true
+  }));
+  sprite.position.set(...f.pos);
+  sprite.scale.set(3.4, 1.7, 1);
+  sprite.userData.facility = f;
+  sprite.userData.baseY = f.pos[1];
+  markerGroup.add(sprite);
+  markers.push(sprite);
+});
+
+/* ---------- controls: orbit + walk ---------- */
+const orbit = new OrbitControls(camera, canvas);
+orbit.target.set(0, 2, -5);
+orbit.enableDamping = true;
+orbit.dampingFactor = 0.06;
+orbit.maxPolarAngle = Math.PI / 2 - 0.04;
+orbit.minDistance = 12;
+orbit.maxDistance = 220;
+orbit.autoRotate = true;
+orbit.autoRotateSpeed = 0.5;
+canvas.addEventListener('pointerdown', () => { orbit.autoRotate = false; }, { once: true });
+
+let mode = 'orbit';                    // 'orbit' | 'walk'
+const EYE = 1.7;
+let yaw = 0, pitch = 0;
+const keys = {};
+const velocity = new THREE.Vector3();
+const playerPos = new THREE.Vector3(0, EYE, 28);   // start south of courtyard
+let joyVec = { x: 0, y: 0 };
+
+/* ground height under the player (ramp + roof terrace) */
+function groundHeight(x, z) {
+  if (x >= RAMP.minX && x <= RAMP.maxX && z >= RAMP.minZ && z <= RAMP.maxZ) {
+    const t = (z - RAMP.minZ) / (RAMP.maxZ - RAMP.minZ);
+    return RAMP.hTop * t;
+  }
+  if (x >= ROOF.minX && x <= ROOF.maxX && z >= ROOF.minZ && z <= ROOF.maxZ) return ROOF.h;
+  return 0;
+}
+
+function blockedAt(x, z, curY) {
+  if (curY > 2.5) return false;         // on the roof/ramp, ignore ground colliders
+  for (const c of colliders) {
+    if (x > c.minX && x < c.maxX && z > c.minZ && z < c.maxZ) return true;
+  }
+  return false;
+}
+
+/* pointer lock (desktop walk) */
+function lockPointer() { canvas.requestPointerLock?.(); }
+document.addEventListener('mousemove', e => {
+  if (mode !== 'walk' || document.pointerLockElement !== canvas) return;
+  yaw -= e.movementX * 0.0022;
+  pitch -= e.movementY * 0.0022;
+  pitch = Math.max(-1.25, Math.min(1.25, pitch));
+});
+document.addEventListener('pointerlockchange', () => {
+  if (mode === 'walk' && document.pointerLockElement !== canvas && !isTouch) {
+    // ESC pressed — back to orbit
+    setMode('orbit');
+  }
+});
+
+document.addEventListener('keydown', e => { keys[e.code] = true; });
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+/* touch look + joystick */
+const joy = document.getElementById('joy');
+const joyKnob = document.getElementById('joyKnob');
+let joyId = null, joyCenter = { x: 0, y: 0 };
+let lookId = null, lookLast = { x: 0, y: 0 };
+
+canvas.addEventListener('touchstart', e => {
+  if (mode !== 'walk') return;
+  for (const t of e.changedTouches) {
+    if (t.clientX < window.innerWidth * 0.45 && joyId === null) {
+      joyId = t.identifier;
+      joyCenter = { x: t.clientX, y: t.clientY };
+      joy.style.display = 'block';
+      joy.style.left = (t.clientX - 55) + 'px';
+      joy.style.top = (t.clientY - 55) + 'px';
+    } else if (lookId === null) {
+      lookId = t.identifier;
+      lookLast = { x: t.clientX, y: t.clientY };
+    }
+  }
+}, { passive: true });
+
+canvas.addEventListener('touchmove', e => {
+  if (mode !== 'walk') return;
+  for (const t of e.changedTouches) {
+    if (t.identifier === joyId) {
+      const dx = t.clientX - joyCenter.x, dy = t.clientY - joyCenter.y;
+      const len = Math.hypot(dx, dy), max = 45;
+      const cl = Math.min(len, max);
+      const nx = len ? dx / len : 0, ny = len ? dy / len : 0;
+      joyVec = { x: nx * (cl / max), y: ny * (cl / max) };
+      joyKnob.style.transform = `translate(calc(-50% + ${nx * cl}px), calc(-50% + ${ny * cl}px))`;
+    } else if (t.identifier === lookId) {
+      yaw -= (t.clientX - lookLast.x) * 0.005;
+      pitch -= (t.clientY - lookLast.y) * 0.005;
+      pitch = Math.max(-1.25, Math.min(1.25, pitch));
+      lookLast = { x: t.clientX, y: t.clientY };
+    }
+  }
+}, { passive: true });
+
+canvas.addEventListener('touchend', e => {
+  for (const t of e.changedTouches) {
+    if (t.identifier === joyId) {
+      joyId = null; joyVec = { x: 0, y: 0 };
+      joy.style.display = 'none';
+      joyKnob.style.transform = 'translate(-50%,-50%)';
+    }
+    if (t.identifier === lookId) lookId = null;
+  }
+});
+
+/* ---------- mode switching ---------- */
+const btnOrbit = document.getElementById('btnOrbit');
+const btnWalk = document.getElementById('btnWalk');
+const hint = document.getElementById('hint');
+const crosshair = document.getElementById('crosshair');
+const walkStart = document.getElementById('walkStart');
+
+function setMode(m) {
+  mode = m;
+  btnOrbit.classList.toggle('active', m === 'orbit');
+  btnWalk.classList.toggle('active', m === 'walk');
+  orbit.enabled = (m === 'orbit');
+  crosshair.style.display = (m === 'walk' && !isTouch) ? 'block' : 'none';
+  if (m === 'walk') {
+    hint.innerHTML = isTouch
+      ? 'left thumb — walk &middot; right thumb — look &middot; tap markers for info'
+      : 'WASD — walk &middot; SHIFT — run &middot; mouse — look &middot; click markers &middot; ESC — exit';
+    // face the courtyard centre
+    yaw = Math.atan2(playerPos.x, playerPos.z);
+    pitch = 0;
+  } else {
+    hint.innerHTML = 'drag to orbit &middot; scroll to zoom &middot; click a red marker for info';
+    if (document.pointerLockElement === canvas) document.exitPointerLock();
+    camera.position.set(70, 55, 95);
+    orbit.target.set(0, 2, -5);
+  }
+}
+
+btnOrbit.addEventListener('click', () => setMode('orbit'));
+btnWalk.addEventListener('click', () => {
+  document.getElementById('walkHelp').innerHTML = isTouch
+    ? 'left thumb — virtual joystick to walk<br>right thumb — drag to look around<br>tap the red markers for facility info<br>find the ramp on the east pavilion for the roof terrace'
+    : 'W A S D / arrows — walk &nbsp;&middot;&nbsp; mouse — look around<br>SHIFT — run &nbsp;&middot;&nbsp; click markers — info &nbsp;&middot;&nbsp; ESC — leave walk mode<br>find the red ramp on the east pavilion for the roof terrace';
+  walkStart.classList.add('open');
+});
+document.getElementById('walkGo').addEventListener('click', () => {
+  walkStart.classList.remove('open');
+  playerPos.set(0, EYE, 28);
+  setMode('walk');
+  if (!isTouch) lockPointer();
+});
+
+/* ---------- day / night ---------- */
+let night = false;
+const btnNight = document.getElementById('btnNight');
+btnNight.addEventListener('click', () => {
+  night = !night;
+  btnNight.classList.toggle('active', night);
+  btnNight.innerHTML = night ? '&#9788; Day' : '&#9789; Night';
+  nightGroup.visible = night;
+  scene.background = new THREE.Color(night ? COL.night : COL.pinkSky);
+  scene.fog.color.set(night ? COL.night : COL.pinkSky);
+  seaMat.color.set(night ? COL.seaNight : COL.seaDay);
+  hemi.intensity = night ? 0.25 : 1.15;
+  hemi.color.set(night ? 0x8090b8 : 0xfff1e8);
+  sunLight.intensity = night ? 0.35 : 2.6;
+  sunLight.color.set(night ? 0xa8b8e0 : 0xffe9d6);
+  sunDisc.material.color.set(night ? 0xe8e0d0 : COL.red);
+  sunDisc.scale.setScalar(night ? 0.45 : 1);
+  M.glassDay.emissive.set(night ? 0xffc98a : 0x000000);
+  M.glassDay.emissiveIntensity = night ? 0.9 : 0;
+});
+
+/* ---------- labels toggle ---------- */
+const btnLabels = document.getElementById('btnLabels');
+btnLabels.addEventListener('click', () => {
+  markerGroup.visible = !markerGroup.visible;
+  btnLabels.classList.toggle('active', markerGroup.visible);
+});
+
+/* ---------- picking / info card ---------- */
+const raycaster = new THREE.Raycaster();
+const infoCard = document.getElementById('infoCard');
+
+function showFacility(f) {
+  document.getElementById('infoNum').textContent = 'Facility ' + f.num;
+  document.getElementById('infoName').textContent = f.name;
+  document.getElementById('infoDesc').textContent = f.desc;
+  document.getElementById('infoPrice').textContent = f.price;
+  infoCard.classList.add('open');
+}
+document.getElementById('infoClose').addEventListener('click', () => infoCard.classList.remove('open'));
+
+function pick(ndcX, ndcY) {
+  raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
+  const hits = raycaster.intersectObjects(markers, false);
+  if (hits.length) { showFacility(hits[0].object.userData.facility); return true; }
+  return false;
+}
+
+canvas.addEventListener('click', e => {
+  if (!markerGroup.visible) return;
+  if (mode === 'walk' && !isTouch) {
+    if (document.pointerLockElement === canvas) pick(0, 0);   // crosshair ray
+    else lockPointer();
+    return;
+  }
+  pick((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
+});
+
+/* ---------- animation loop ---------- */
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const t = clock.elapsedTime;
+
+  // sea waves
+  const pos = seaGeo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const bx = seaBase[i * 3], by = seaBase[i * 3 + 1];
+    pos.setZ(i, Math.sin(bx * 0.08 + t * 0.9) * 0.28 + Math.cos(by * 0.11 + t * 0.6) * 0.22);
+  }
+  pos.needsUpdate = true;
+  seaGeo.computeVertexNormals();
+
+  // marker bobbing
+  markers.forEach((m, i) => { m.position.y = m.userData.baseY + Math.sin(t * 1.6 + i) * 0.16; });
+
+  if (mode === 'orbit') {
+    orbit.update();
+  } else {
+    // -------- first-person walk --------
+    const speed = (keys.ShiftLeft || keys.ShiftRight) ? 10.5 : 5.0;
+    let fwd = 0, strafe = 0;
+    if (keys.KeyW || keys.ArrowUp) fwd += 1;
+    if (keys.KeyS || keys.ArrowDown) fwd -= 1;
+    if (keys.KeyA || keys.ArrowLeft) strafe -= 1;
+    if (keys.KeyD || keys.ArrowRight) strafe += 1;
+    fwd += -joyVec.y; strafe += joyVec.x;
+
+    const len = Math.hypot(fwd, strafe);
+    if (len > 1) { fwd /= len; strafe /= len; }
+
+    const sin = Math.sin(yaw), cos = Math.cos(yaw);
+    velocity.x = (-sin * fwd + cos * strafe) * speed;
+    velocity.z = (-cos * fwd - sin * strafe) * speed;
+
+    const curFeet = playerPos.y - EYE;
+    let nx = playerPos.x + velocity.x * dt;
+    let nz = playerPos.z + velocity.z * dt;
+
+    // axis-separated collision so we slide along walls
+    if (blockedAt(nx, playerPos.z, curFeet)) nx = playerPos.x;
+    if (blockedAt(nx, nz, curFeet)) nz = playerPos.z;
+
+    // keep on site
+    nx = Math.max(-75, Math.min(75, nx));
+    nz = Math.max(-64, Math.min(50, nz));
+
+    // don't step off the roof edge (except onto the ramp)
+    const newGround = groundHeight(nx, nz);
+    if (curFeet > 2.5 && newGround < 0.5 && curFeet - newGround > 2.5) {
+      // walking off the roof — block unless leaving via ramp
+      nx = playerPos.x; nz = playerPos.z;
+    } else {
+      playerPos.x = nx; playerPos.z = nz;
+    }
+
+    const targetY = groundHeight(playerPos.x, playerPos.z) + EYE;
+    playerPos.y += (targetY - playerPos.y) * Math.min(1, dt * 10);
+
+    camera.position.copy(playerPos);
+    camera.rotation.set(0, 0, 0);
+    camera.rotateY(yaw);
+    camera.rotateX(pitch);
+
+    // gentle head bob while moving
+    if (len > 0.1) camera.position.y += Math.sin(t * 9) * 0.045;
+  }
+
+  renderer.render(scene, camera);
+}
+
+/* ---------- resize ---------- */
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+/* ---------- go ---------- */
+animate();
+requestAnimationFrame(() => document.getElementById('loading').classList.add('done'));
+</script>
+</body>
+</html>

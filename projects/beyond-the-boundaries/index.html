@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beyond the Boundaries — Drashti Tanna · Landscape Architecture Portfolio</title>
+<meta name="description" content="Beyond the Boundaries — weaving a new network through land and water in Romano di Lombardia, Italy. Conceptual analysis and planning with an interactive 3D corridor walk.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../shared/css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M10 55 Q30 35 50 55 T90 55 L90 75 Q70 95 50 75 T10 75 Z' fill='%231d4e6e'/></svg>">
+<style>
+  /* ---- water-blue theme override (this project's board palette) ---- */
+  :root {
+    --red: #1d4e6e;
+    --red-dark: #143850;
+    --pink: #d9e4ec;
+    --pink-soft: #e9eff4;
+    --moss: #6b7a55;
+  }
+  .hero-river {
+    position: absolute;
+    inset: auto 0 0 0;
+    width: 100%;
+    height: 100%;
+  }
+  .hero-river svg { width: 100%; height: 100%; display: block; }
+  .river-flow { animation: flow 14s linear infinite; }
+  .river-flow.slow { animation-duration: 22s; }
+  @keyframes flow { to { transform: translateX(-220px); } }
+  .rq {
+    font-size: clamp(19px, 2.6vw, 27px);
+    line-height: 1.5;
+    font-weight: 500;
+    max-width: 34em;
+  }
+  .rq em { color: var(--red); font-style: normal; }
+  .strategy-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-top: 36px;
+  }
+  .strat-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-top: 4px solid var(--red);
+    padding: 22px;
+  }
+  .strat-card .big {
+    font-family: var(--mono);
+    font-size: 30px;
+    font-weight: 600;
+    color: var(--red);
+    line-height: 1;
+  }
+  .strat-card h4 { margin: 10px 0 8px; font-size: 16px; }
+  .strat-card p { font-size: 13.5px; color: var(--grey); line-height: 1.55; }
+  .veg-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 16px;
+    margin-top: 36px;
+  }
+  .veg-card { border: 1px dashed var(--red); padding: 20px; background: rgba(255,255,255,.55); }
+  .veg-card h4 { font-family: var(--mono); font-size: 12.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--red); margin-bottom: 10px; }
+  .veg-card ul { list-style: none; }
+  .veg-card li { font-size: 13px; font-style: italic; color: #3d4a3a; line-height: 1.7; }
+  .veg-card .fn { font-style: normal; font-size: 12.5px; color: var(--grey); margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<!-- ===================== NAV ===================== -->
+<nav class="nav" id="nav">
+  <a class="brand" href="#top">BEYOND <em>THE BOUNDARIES</em></a>
+  <button class="nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
+  <div class="nav-links" id="navLinks">
+    <a href="../../index.html">Home</a>
+    <a href="#territory">Territory</a>
+    <a href="#fontanili">Fontanili</a>
+    <a href="#infraspaces">Infraspaces</a>
+    <a href="#strategy">Water Strategy</a>
+    <a href="#vegetation">Vegetation</a>
+    <a href="#drawings">Boards</a>
+    <a href="../xenia-lunapark/index.html" title="Xenia Lunapark">Project 01</a>
+    <a class="btn-red" href="explore.html">Explore in 3D</a>
+  </div>
+</nav>
+
+<!-- ===================== HERO ===================== -->
+<header class="hero" id="top">
+  <div class="hero-sky">
+    <div class="hero-river">
+      <svg viewBox="0 0 1200 400" preserveAspectRatio="none" aria-hidden="true">
+        <g class="river-flow slow">
+          <path d="M-240 250 Q-140 210 -40 250 T160 250 T360 250 T560 250 T760 250 T960 250 T1160 250 T1360 250 T1560 250 L1560 400 L-240 400 Z" fill="#b9cdda"/>
+        </g>
+        <g class="river-flow">
+          <path d="M-240 300 Q-130 265 -20 300 T200 300 T420 300 T640 300 T860 300 T1080 300 T1300 300 T1520 300 L1520 400 L-240 400 Z" fill="#1d4e6e" opacity="0.85"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+  <div class="hero-ground">
+    <div class="wrap hero-inner">
+      <p class="label">Conceptual Analysis &amp; Planning · Entry 88857 · Romano di Lombardia, Italy</p>
+      <h1>Beyond the<br><span class="thin">Boundaries</span></h1>
+      <p class="hero-sub">Weaving a new network through land and water — re-stitching a plain fragmented by the BreBeMi motorway and railway, with fontanili springs, bioswales and forests.</p>
+      <p class="hero-credit"><strong>Drashti Tanna</strong> — Landscape Architecture</p>
+      <div class="hero-actions">
+        <a class="btn-red" href="explore.html">&#9658;&nbsp; Walk the corridor in 3D</a>
+        <a class="btn-ghost" href="#drawings">View the boards</a>
+      </div>
+    </div>
+  </div>
+  <div class="scroll-cue">SCROLL &#9660;</div>
+</header>
+
+<!-- ===================== FACTS ===================== -->
+<div class="facts">
+  <div class="wrap facts-grid">
+    <div class="fact"><span class="label">Site</span><p>Romano di Lombardia — the Serio River plain, Lombardy, Italy</p></div>
+    <div class="fact"><span class="label">Category</span><p>Conceptual Analysis &amp; Planning — student award entry 88857</p></div>
+    <div class="fact"><span class="label">Systems</span><p>BreBeMi motorway · railway · Serio River · fontanili springs</p></div>
+    <div class="fact"><span class="label">Toolkit</span><p>Bioswales, detention ponds, reforestation, recreational infraspaces</p></div>
+  </div>
+</div>
+
+<!-- ===================== RESEARCH QUESTION ===================== -->
+<section class="block" id="question">
+  <div class="wrap">
+    <p class="label reveal">Research question</p>
+    <p class="rq reveal" style="margin-top:14px">&ldquo;What are the values of the landscape that have been <em>lost in the past</em>, that once replaced could <em>rebalance the interactions</em> of the infrastructure in the territory?&rdquo;</p>
+    <p class="lede reveal" style="margin-top:22px" >This question shaped the way we looked at the site — not only through its physical structures, but through the hidden values embedded in water systems, agricultural patterns and everyday perceptions.</p>
+  </div>
+</section>
+
+<!-- ===================== TERRITORY ===================== -->
+<section class="block tint" id="territory">
+  <div class="wrap">
+    <p class="label reveal">01 — Territory: an historical review</p>
+    <h2 class="section-title reveal">A plain cut by infrastructure</h2>
+    <div class="two-col">
+      <div class="text reveal">
+        <p>The construction of the BreBeMi motorway and the railway fragmented large portions of the land, interrupting the historical continuity of fields, canals and settlements between the Adda, Serio and Oglio rivers.</p>
+        <p>Comparing the features of the landscape in 1975 and 2012 shows the loss: strips of forest located peripherally have disappeared over time as a result of the agriculture industrialization process. Yet key structuring elements survive — the fontanili, the productive fields, the irrigation canals, the historic Fosso Bergamasco — elements that once defined the identity of the plain.</p>
+        <p>The site sits within a larger regional system: the national bike lane AIDA and the landscape guide trails position it between infrastructure and heritage.</p>
+      </div>
+      <figure class="figure reveal">
+        <img src="assets/thumbs/board-02.jpg" data-full="assets/boards/board-02.jpg" data-idx="1" alt="Territory board — historical review and layers of preexistent values">
+        <figcaption>Board 02 — Territory: historical review 1975 / 2012 · layers of preexistent values</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FONTANILI ===================== -->
+<section class="block" id="fontanili">
+  <div class="wrap">
+    <p class="label reveal">02 — Layers of preexistent values</p>
+    <h2 class="section-title reveal">The fontanili: springs of the plain</h2>
+    <div class="two-col">
+      <figure class="figure reveal">
+        <img src="assets/thumbs/board-01.jpg" data-full="assets/boards/board-01.jpg" data-idx="0" alt="Project statement board">
+        <figcaption>Board 01 — Project statement · weaving a new network through land and water</figcaption>
+      </figure>
+      <div class="text reveal">
+        <p>Around the Serio River, the geological line of the springs marks a geomorphological phenomenon linked to impermeable shallow stratification. The <strong>fontanili</strong> are a peculiar element of this land — fresh-water springs of a distinctive <em>semi-natural</em> origin, shaped over centuries by human intervention.</p>
+        <p>They provided fresh water for irrigation and created semi-natural flooded landscapes in winter. Mapping the active, inactive and extinct fontanili revealed a green connectivity network waiting to be reactivated according to their footprint.</p>
+        <div class="pullquote">
+          Recognizing these elements helped us understand what had been lost — and what could be brought back.
+          <span class="who">From the project statement</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== INFRASPACES ===================== -->
+<section class="block dark" id="infraspaces">
+  <div class="wrap">
+    <p class="label reveal">03 — The field of intervention</p>
+    <h2 class="statement reveal">Infraspaces:<br><em>more than empty margins.</em></h2>
+    <div class="two-col" style="margin-top:44px">
+      <div class="text reveal">
+        <p class="lede">From the railway, the landscape reveals itself as a sequence of fragmented boundaries and residual spaces, where canals, fields, settlements and infrastructures meet without clarity.</p>
+        <p style="margin-top:16px" class="muted">These infraspaces and diffuse borders were studied carefully — some squeezed between canals and productive fields, others beside settlements or underneath raised roads, others stretched along the railway. Using graphic codes and annotations, their boundaries were defined and they were recognized as potential active components of a new landscape strategy.</p>
+        <p style="margin-top:16px" class="muted">A mapping process identified all the elements contributing to border definition in the area of intervention: tunnels, points of decision, landmarks, tree-lined strips, canals and the sections that cut across them.</p>
+      </div>
+      <figure class="figure reveal">
+        <img src="assets/thumbs/board-03.jpg" data-full="assets/boards/board-03.jpg" data-idx="2" alt="Intervention mapping board">
+        <figcaption style="color:#8a8380">Board 03 — Mapping the infraspaces · border definition &amp; strategies</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== WATER STRATEGY ===================== -->
+<section class="block tint" id="strategy">
+  <div class="wrap">
+    <p class="label reveal">04 — Water as the central theme</p>
+    <h2 class="section-title reveal">Collect, filter, reinfiltrate</h2>
+    <p class="lede reveal">Drainage from the BreBeMi and the railway currently flows without management — often polluted and disconnected from the natural hydrology. The proposal introduces widened drainage canals, bioswales and detention ponds to collect, filter and reintegrate these flows.</p>
+
+    <div class="strategy-grid">
+      <div class="strat-card reveal"><span class="big">A</span><h4>Identify the infraspaces</h4><p>Identification of the existing condition of infra-spaces and their interaction with blue, green and gray infrastructures — sustainable water drainage, biodiversity and water resilience.</p></div>
+      <div class="strat-card reveal"><span class="big">B</span><h4>Reforest the nodes</h4><p>At node conditions between blue and gray infrastructures: a reforestation plan including shrubs, bushes and tree species, connecting the existing forest patches.</p></div>
+      <div class="strat-card reveal"><span class="big">C</span><h4>Let water flow</h4><p>Flow of water as a preexistence — promote water filtration with polyspecific herbaceous and tree species, and widen the water crossings between the infrastructures.</p></div>
+      <div class="strat-card reveal"><span class="big">D</span><h4>Clean the drainage</h4><p>BreBeMi drainage water pollution: a network of inlet and outlet bioswale canals with filtration purpose — collect and reinfiltrate the water in a detention pond.</p></div>
+    </div>
+
+    <div class="two-col" style="margin-top:56px">
+      <div class="text reveal">
+        <h2 class="section-title" style="font-size:clamp(22px,3vw,34px)">Transects of the network <span class="muted" style="font-weight:400">1:500</span></h2>
+        <p><strong>Forestation crossings (A–A′)</strong> — between the BreBeMi motorway and the railway, layered vegetation creates a biodiverse space where a linear passage gives access and connection to the Serio River.</p>
+        <p><strong>Collect &amp; reinfiltrate the water (B–B′)</strong> — gray water from both infrastructures is filtered through canals and a detention pond, which connects to the wider water system. A separate pond naturalizes water from the irrigation canals linked to the fontanili.</p>
+        <p><strong>Recreational infraspaces (C–C′)</strong> — openings in the embankments filter gray water through the landscape, while reforestation blends ecological restoration with recreational spaces in the corridor.</p>
+      </div>
+      <figure class="figure reveal">
+        <img src="assets/thumbs/board-04.jpg" data-full="assets/boards/board-04.jpg" data-idx="3" alt="Transects of the network board">
+        <figcaption>Board 04 — Details &amp; transects of the network · 1:500</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== VEGETATION ===================== -->
+<section class="block" id="vegetation">
+  <div class="wrap">
+    <p class="label reveal">05 — Vegetation typology</p>
+    <h2 class="section-title reveal">Native species, by function</h2>
+    <p class="lede reveal">Planting typologies use native species by function — layered forests, green barriers, bioswales and detention ponds — to enhance ecological resilience, manage water and strengthen landscape connectivity.</p>
+
+    <div class="veg-grid">
+      <div class="veg-card reveal"><h4>Forestation area</h4><ul><li>Platanus &times; acerifolia</li><li>Platanus orientalis</li><li>Fagus sylvatica</li><li>Quercus cerris &middot; Quercus robur</li><li>Populus nigra &middot; Populus alba</li><li>Salix alba</li></ul><p class="fn">Tall layered forest along the crossings — shade, biomass, biodiversity.</p></div>
+      <div class="veg-card reveal"><h4>Green barrier</h4><ul><li>Quercus ilex</li><li>Acer pseudoplatanus &middot; Acer campestre</li><li>Tilia platyphyllos</li><li>Ostrya carpinifolia &middot; Fraxinus ornus</li><li>Carpinus betulus &middot; Betula pendula</li></ul><p class="fn">Dense screens against noise and views of the gray infrastructure.</p></div>
+      <div class="veg-card reveal"><h4>Detention pond</h4><ul><li>Corylus avellana</li><li>Rhamnus cathartica</li><li>Malus sylvestris</li><li>Prunus mahaleb</li><li>Arbutus unedo &middot; Sorbus domestica</li></ul><p class="fn">Soft banks that store, clean and slowly release the drainage water.</p></div>
+      <div class="veg-card reveal"><h4>Bioswale</h4><ul><li>Phillyrea angustifolia</li><li>Amelanchier ovalis</li><li>Viburnum tinus &middot; Viburnum lantana</li><li>Crataegus monogyna</li></ul><p class="fn">Filtering strips that carry water from the infrastructure to the ponds.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== EXPLORE CTA ===================== -->
+<section class="explore-cta" id="explore">
+  <p class="label" style="color:#fff">06 — Interactive model</p>
+  <h2>Walk the corridor</h2>
+  <p>Orbit the intervention in 3D — or walk it in first person: follow the bioswales to the detention pond, pass under the BreBeMi bridge to the Serio River, watch the train cross the plain, and climb the ramp for the view from the motorway.</p>
+  <a class="btn-white" href="explore.html">Enter the 3D experience &nbsp;&#9658;</a>
+</section>
+
+<!-- ===================== BOARDS ===================== -->
+<section class="block" id="drawings">
+  <div class="wrap">
+    <p class="label reveal">07 — Competition boards</p>
+    <h2 class="section-title reveal">The full entry</h2>
+    <p class="lede reveal">All five boards of the competition entry. Click any board to view it full-screen.</p>
+    <div class="gal-grid reveal" id="galGrid" style="margin-top:34px"><!-- populated by js/beyond.js --></div>
+    <p class="reveal" style="margin-top:28px"><a class="btn-ghost" href="docs/beyond-the-boundaries-booklet.pdf" download>&#8595;&nbsp; Download the boards (PDF)</a></p>
+  </div>
+</section>
+
+<!-- ===================== NEXT PROJECT ===================== -->
+<section class="block dark">
+  <div class="wrap two-col" style="align-items:center">
+    <div class="reveal">
+      <p class="label">Next project</p>
+      <h2 class="section-title" style="margin-bottom:12px">Xenia Lunapark</h2>
+      <p class="muted">Reuse of Aris Konstantinidis' 1963 Xenia Motel in Karteros, Crete — a year-round seaside lunapark. With its own 3D walk-through.</p>
+      <p style="margin-top:22px"><a class="btn-red" href="../xenia-lunapark/index.html" style="background:#8b1e1e">Visit project 01 &#8594;</a></p>
+    </div>
+    <figure class="figure reveal">
+      <a href="../xenia-lunapark/index.html"><img src="../xenia-lunapark/assets/thumbs/board-13.jpg" alt="Xenia Lunapark" style="cursor:pointer"></a>
+    </figure>
+  </div>
+</section>
+
+<!-- ===================== FOOTER ===================== -->
+<footer>
+  <div class="wrap foot-grid">
+    <div>
+      <h4>Beyond the Boundaries</h4>
+      <p>Weaving a new network through land and water — Romano di Lombardia, Lombardy, Italy. Student award entry, category <em>Conceptual Analysis and Planning</em> (entry 88857).</p>
+    </div>
+    <div>
+      <h4>Author</h4>
+      <ul>
+        <li><strong>Drashti Tanna</strong> — Landscape Architecture</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Explore</h4>
+      <ul>
+        <li><a href="explore.html">3D corridor walk</a></li>
+        <li><a href="#drawings">Competition boards</a></li>
+        <li><a href="../xenia-lunapark/index.html">Project 01 — Xenia Lunapark</a></li>
+        <li><a href="../../index.html">Portfolio home</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="wrap foot-bottom">
+    <span>© 2025–2026 Drashti Tanna</span>
+    <span>Serio River · BreBeMi · Romano di Lombardia</span>
+  </div>
+</footer>
+
+<!-- ===================== LIGHTBOX ===================== -->
+<div class="lightbox" id="lightbox">
+  <button class="lb-close" id="lbClose" aria-label="Close">&times;</button>
+  <button class="lb-btn lb-prev" id="lbPrev" aria-label="Previous">&#8592;</button>
+  <img id="lbImg" src="" alt="Board full view">
+  <button class="lb-btn lb-next" id="lbNext" aria-label="Next">&#8594;</button>
+  <div class="lb-cap" id="lbCap"></div>
+</div>
+
+<script src="js/beyond.js"></script>
+</body>
+</html>

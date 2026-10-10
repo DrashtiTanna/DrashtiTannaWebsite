@@ -1,6 +1,12 @@
 # Drashti Tanna — Landscape Architecture Portfolio
 
-Interactive portfolio website. Each project lives in its own folder under `projects/`, so different people can work on different projects without touching each other's files.
+Personal portfolio and curriculum vitae for Drashti Tanna. The homepage introduces her approach to architecture and landscape, presents her education and experience, and links to the two interactive projects. Each project lives in its own folder under `projects/`.
+
+The homepage follows the CV's red-and-ink visual theme. Its landscape panorama is an AI-refined, CV-inspired ink illustration; the original CV artwork remains unchanged in `shared/assets/cv-landscape.jpg`. The optimized website version is `shared/assets/cv-landscape-enhanced.webp`; illustration notes are in `docs/illustration-notes.md`.
+
+A dependency-free, projected 3D terrain study responds to scrolling and pointer movement, with a settling entrance, walking scale figures, and a gliding bird pair. A cached terrain layer keeps idle character animation lightweight. The study is conceptual, not a model of either project. Replay it from its caption, or pause all motion from the header. System reduced-motion preferences, offscreen/background suspension, and static fallbacks are supported. Project panels use native CSS scroll-driven perspective.
+
+The downloadable CV is at `docs/drashti-tanna-cv.pdf`. Homepage styles and interactions are isolated in `shared/css/home.css`, `shared/js/home.js`, and `shared/js/terrain.js`; the existing project pages keep their shared stylesheet. All homepage fonts and artwork are served locally, with open-source font licenses included. No build step is required.
 
 ## Folder structure
 
@@ -8,7 +14,13 @@ Interactive portfolio website. Each project lives in its own folder under `proje
 DrashtiPortfolio/
 ├── index.html                        ← Home / landing page (links to all projects)
 ├── shared/
-│   └── css/style.css                 ← Styles shared by all project pages
+│   ├── assets/                      ← Original CV sketch and optimized panorama
+│   ├── css/home.css                 ← Homepage layout and scroll-driven motion
+│   ├── css/style.css                ← Styles shared by all project pages
+│   ├── fonts/                       ← Local WOFF2 fonts and licenses
+│   └── js/                          ← Homepage navigation and terrain study
+├── docs/                           ← Downloadable CV and illustration notes
+├── scripts/check-site.mjs          ← Buildless static-site checks
 └── projects/
     ├── xenia-lunapark/               ← Project 01
     │   ├── index.html                ← Project page (story, timeline, boards)
@@ -56,6 +68,12 @@ Serve the root folder (opening `index.html` directly also works; internet connec
 ```
 python -m http.server 8000
 # then visit http://localhost:8000
+```
+
+Run the static checks with Node.js (no dependency installation required):
+
+```
+node scripts/check-site.mjs
 ```
 
 ## Deploy for free (GitHub Pages)

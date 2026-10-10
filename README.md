@@ -76,6 +76,17 @@ Run the static checks with Node.js (no dependency installation required):
 node scripts/check-site.mjs
 ```
 
+The checker also has regression tests:
+
+```
+node --test scripts/check-site.test.mjs
+```
+
+GitHub Actions runs both commands on pull requests and pushes to `main`.
+The GitHub Pages workflow runs the same reusable validation job before uploading
+the site, so missing assets, duplicate IDs, broken homepage markup, or invalid
+JavaScript stop publishing. Validation needs only read access and no npm install.
+
 ## Deploy for free (GitHub Pages)
 
 1. Create a new GitHub repository (e.g. `drashti-portfolio`) and push this folder to it.

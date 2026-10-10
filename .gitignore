@@ -9,3 +9,11 @@ Desktop.ini
 
 # Node (if a build step is ever added)
 node_modules/
+
+# Local agent coordination, browser captures, and verification tools
+.agents/
+
+# Source exports retained locally; the optimized production assets are tracked
+shared/assets/cv-landscape.png
+shared/assets/cv-landscape-enhanced.png
+shared/fonts/*.ttf

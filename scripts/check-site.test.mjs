@@ -8,6 +8,13 @@ import test from 'node:test';
 
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
+for (const page of ['index.html', 'projects/xenia-lunapark/index.html', 'projects/beyond-the-boundaries/index.html']) {
+  test(`${page} does not reintroduce the removed 3D entry buttons`, () => {
+    const html = readFileSync(join(projectRoot, page), 'utf8');
+    assert.doesNotMatch(html, /\b(?:Explore in 3D|Walk the (?:site|corridor) in 3D)\b/i);
+  });
+}
+
 function fixture(t) {
   const fixtureRoot = mkdtempSync(join(tmpdir(), 'portfolio-site-check-'));
   t.after(() => {
